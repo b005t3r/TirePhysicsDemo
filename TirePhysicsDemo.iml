@@ -11,6 +11,9 @@
             <entry module-name="feathers" build-configuration-name="feathers">
               <dependency linkage="Merged" />
             </entry>
+            <entry module-name="Starling-Extension-Graphics" build-configuration-name="Starling-Extension-Graphics">
+              <dependency linkage="Merged" />
+            </entry>
           </entries>
           <sdk name="AIR SDK 4.0" />
         </dependencies>
@@ -32,6 +35,7 @@
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="feathers" exported="" />
     <orderEntry type="module" module-name="starling" exported="" />
+    <orderEntry type="module" module-name="Starling-Extension-Graphics" exported="" />
   </component>
 </module>
 

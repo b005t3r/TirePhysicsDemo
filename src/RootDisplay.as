@@ -17,6 +17,8 @@ import flash.utils.getTimer;
 
 import starling.events.Event;
 
+import ui.AnimationScreen;
+
 import ui.ControlsScreen;
 import ui.SettingsMainScreen;
 import ui.WheelDataScreen;
@@ -35,7 +37,7 @@ public class RootDisplay extends LayoutGroup {
     private var _subStepCount:int                           = 10;
 
     private var _settings:StackScreenNavigator;
-    private var _content:LayoutGroup;
+    private var _content:AnimationScreen;
 
     private var _prevTime:int                               = -1;
     private var _excessDt:Number                            = 0;
@@ -140,6 +142,12 @@ public class RootDisplay extends LayoutGroup {
 
         _settings.pushTransition    = Slide.createSlideLeftTransition();
         _settings.popTransition     = Slide.createSlideRightTransition();
+
+        _content                    = new AnimationScreen();
+        _content.layoutData         = new AnchorLayoutData(0, 0, 0, _settings.width);
+        _content.clipContent        = true;
+        _content.tirePhysics        = _tirePhysics;
+        addChild(_content);
     }
 }
 }

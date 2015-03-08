@@ -130,17 +130,17 @@ public class TirePhysics {
                 wheelPosVel            += posAcc * dt;
 
                 // drag was high enough to stop body's roll
-                if(! sameSign(oldAngVel, wheelAngVel, false) && ! sameSign(appliedTorque, wheelAngVel, false))
+                if(! sameSign(oldAngVel, wheelAngVel, false) && (appliedTorque != 0 || brakingTorque != 0) && ! sameSign(appliedTorque, wheelAngVel, false))
                     wheelAngVel = 0;
 
                 // drag was high enough to stop the body
-                if(! sameSign(kOldPosVel, wheelPosVel, false) && ! sameSign(torqueForce, wheelPosVel, false))
+                if(! sameSign(kOldPosVel, wheelPosVel, false) && torqueForce != 0 && ! sameSign(torqueForce, wheelPosVel, false))
                     wheelPosVel = 0;
 
                 var newWheelSurfaceVel:Number = wheelPosVel + wheelAngVel * wheelRadius;
 
                 // both velocities are temporarily on par, try switching back to static friction
-                if(! sameSign(wheelSurfaceVel, newWheelSurfaceVel, false))
+                if(! sameSign(wheelSurfaceVel, newWheelSurfaceVel, false) || Math.abs(newWheelSurfaceVel) < 0.01)
                     useStaticFriction = true;
 
                 wasStaticFriction = false;
@@ -149,10 +149,14 @@ public class TirePhysics {
             // common integration
             wheelPos   += wheelPosVel * dt;
             wheelAngle += wheelAngVel * dt;
-            var newSlipRatio:Number = wheelPosVel != 0 ? (wheelAngVel * wheelRadius + wheelPosVel) / Math.abs(wheelPosVel) : 0.0;
 
-            //slipRatio   = slipRatio * 0.5 + newSlipRatio * 0.5;
-            slipRatio   = newSlipRatio;
+            const minVel:Number = 0.15;
+            if(Math.abs(wheelPosVel) < minVel)
+                slipRatio = wheelPosVel < 0 ? direction * (wheelAngVel * wheelRadius - minVel) / minVel : direction * (wheelAngVel * wheelRadius + minVel) / minVel;
+            else
+                slipRatio = direction * (wheelAngVel * wheelRadius + wheelPosVel) / Math.abs(wheelPosVel);
+
+            //slipRatio   = wheelPosVel != 0 ? (wheelAngVel * wheelRadius + wheelPosVel) / Math.abs(wheelPosVel) : 0.0;
         }
     }
 

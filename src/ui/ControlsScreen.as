@@ -112,13 +112,13 @@ public class ControlsScreen extends PanelScreen {
         addChild(ctrlList);
 
         _simulationFreq = new Label();
-        _simulationFreq.text = "" + int(Math.round(1 / _rootDisplay.stepDt) * _rootDisplay.subStepCount) + "[Hz]";
+        _simulationFreq.text = int(Math.round(1 / _rootDisplay.stepDt) * _rootDisplay.subStepCount) + " [Hz]";
 
         _velocityLabel = new Label();
-        _velocityLabel.text = "" + int(_tirePhysics.wheelPosVel * 100 * 3.6) / 100 + " [km/h]";
+        _velocityLabel.text = int(_tirePhysics.wheelPosVel * 100 * 3.6) / 100 + " [km/h]";
 
         _angVelocityLabel = new Label();
-        _angVelocityLabel.text = "" + int(_tirePhysics.wheelAngVel * _tirePhysics.wheelRadius * 100 * 3.6) / 100 + " [km/h]";
+        _angVelocityLabel.text = int(_tirePhysics.wheelAngVel * _tirePhysics.wheelRadius * 100 * 3.6) / 100 + " [km/h]";
 
         _frictionLabel = new Label();
         _frictionLabel.text = _tirePhysics.wasStaticFriction ? "Static" : "Kinetic";
@@ -127,19 +127,19 @@ public class ControlsScreen extends PanelScreen {
         _slipRatioLabel.text = _tirePhysics.wasStaticFriction ? "-" : "" + int(_tirePhysics.slipRatio * 100) + "%";
 
         _accTorque = new Label();
-        _accTorque.text = int(_tirePhysics.wheelTorque * _tirePhysics.throttle * _tirePhysics.direction * 100) / 100 + "[Nm]";
+        _accTorque.text = int(_tirePhysics.wheelTorque * _tirePhysics.throttle * _tirePhysics.direction * 100) / 100 + " [Nm]";
 
         _brakeTorque = new Label();
-        _brakeTorque.text = int(_tirePhysics.brakeTorque * _tirePhysics.brakes * _tirePhysics.direction * 100) / 100 + "[Nm]";
+        _brakeTorque.text = int(_tirePhysics.brakeTorque * _tirePhysics.brakes * _tirePhysics.direction * 100) / 100 + " [Nm]";
 
         _airDragTorque = new Label();
-        _airDragTorque.text = int(_tirePhysics.airDragTorque * 100) / 100 + "[Nm]";
+        _airDragTorque.text = int(_tirePhysics.airDragTorque * 100) / 100 + " [Nm]";
 
         _rollingDragTorque = new Label();
-        _rollingDragTorque.text = int(_tirePhysics.rollingDragTorque * 100) / 100 + "[Nm]";
+        _rollingDragTorque.text = int(_tirePhysics.rollingDragTorque * 100) / 100 + " [Nm]";
 
         _totalDragTorque = new Label();
-        _totalDragTorque.text = int(_tirePhysics.totalDragTorque * 100) / 100 + "[Nm]";
+        _totalDragTorque.text = int(_tirePhysics.totalDragTorque * 100) / 100 + " [Nm]";
 
         var header:Header = new Header();
         header.title = "Values";
@@ -191,16 +191,16 @@ public class ControlsScreen extends PanelScreen {
     }
 
     private function onFrame(event:EnterFrameEvent):void {
-        _simulationFreq.text    = "" + int(Math.round(1 / _rootDisplay.stepDt) * _rootDisplay.subStepCount) + "[Hz]";
-        _velocityLabel.text     = "" + int(_tirePhysics.wheelPosVel * 100 * 3.6) / 100 + " [km/h]";
-        _angVelocityLabel.text  = "" + int(_tirePhysics.wheelAngVel * _tirePhysics.wheelRadius * 100 * 3.6) / 100 + " [km/h]";
+        _simulationFreq.text    = int(Math.round(1 / _rootDisplay.stepDt) * _rootDisplay.subStepCount) + " [Hz]";
+        _velocityLabel.text     = int(_tirePhysics.wheelPosVel * 100 * 3.6) / 100 + " [km/h]";
+        _angVelocityLabel.text  = int(_tirePhysics.wheelAngVel * _tirePhysics.wheelRadius * 100 * 3.6) / 100 + " [km/h]";
         _frictionLabel.text     = _tirePhysics.wasStaticFriction ? "Static" : "Kinetic";
         _slipRatioLabel.text    = _tirePhysics.wasStaticFriction ? "-" : "" + int(_tirePhysics.slipRatio * 100) + "%";
-        _accTorque.text         = int(_tirePhysics.wheelTorque * _tirePhysics.throttle * _tirePhysics.direction * 100) / 100 + "[Nm]";
-        _brakeTorque.text       = int(_tirePhysics.brakeTorque * _tirePhysics.brakes * _tirePhysics.direction * 100) / 100 + "[Nm]";
-        _airDragTorque.text     = int(_tirePhysics.airDragTorque * 100) / 100 + "[Nm]";
-        _rollingDragTorque.text = int(_tirePhysics.rollingDragTorque * 100) / 100 + "[Nm]";
-        _totalDragTorque.text   = int(_tirePhysics.totalDragTorque * 100) / 100 + "[Nm]";
+        _accTorque.text         = int(_tirePhysics.wheelTorque * _tirePhysics.throttle * _tirePhysics.direction * 100) / 100 + " [Nm]";
+        _brakeTorque.text       = int(_tirePhysics.brakeTorque * _tirePhysics.brakes * _tirePhysics.direction * 100) / 100 + " [Nm]";
+        _airDragTorque.text     = int(_tirePhysics.airDragTorque * 100) / 100 + " [Nm]";
+        _rollingDragTorque.text = int(_tirePhysics.rollingDragTorque * 100) / 100 + " [Nm]";
+        _totalDragTorque.text   = int(_tirePhysics.totalDragTorque * 100) / 100 + " [Nm]";
     }
 }
 }
