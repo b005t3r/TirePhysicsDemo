@@ -11,6 +11,7 @@ import feathers.layout.AnchorLayout;
 import feathers.layout.AnchorLayoutData;
 import feathers.motion.Slide;
 import feathers.themes.MinimalDesktopTheme;
+import feathers.themes.MinimalDesktopThemeWithAssetManager;
 
 import flash.ui.GameInput;
 import flash.utils.getTimer;
@@ -25,22 +26,22 @@ import ui.WheelDataScreen;
 import ui.WorldDataScreen;
 
 public class RootDisplay extends LayoutGroup {
-    private static const SETTINGS_MAIN_ID:String            = "settingsMain";
-    private static const SETTINGS_WHEEL_DATA_ID:String      = "wheelData";
-    private static const SETTINGS_WORLD_DATA_ID:String      = "worldData";
-    private static const SETTINGS_CONTROLS_ID:String        = "controls";
+    private static const SETTINGS_MAIN_ID:String = "settingsMain";
+    private static const SETTINGS_WHEEL_DATA_ID:String = "wheelData";
+    private static const SETTINGS_WORLD_DATA_ID:String = "worldData";
+    private static const SETTINGS_CONTROLS_ID:String = "controls";
 
     private var _gameInput:GameInput;
 
     private var _tirePhysics:TirePhysics;
-    private var _stepDt:Number                              = 0.01;
-    private var _subStepCount:int                           = 10;
+    private var _stepDt:Number = 0.01;
+    private var _subStepCount:int = 10;
 
     private var _settings:StackScreenNavigator;
     private var _content:AnimationScreen;
 
-    private var _prevTime:int                               = -1;
-    private var _excessDt:Number                            = 0;
+    private var _prevTime:int = -1;
+    private var _excessDt:Number = 0;
 
     public function RootDisplay() {
         addEventListener(Event.ADDED_TO_STAGE, onAddedToStage);
@@ -51,9 +52,11 @@ public class RootDisplay extends LayoutGroup {
     }
 
     public function get stepDt():Number { return _stepDt; }
+
     public function set stepDt(value:Number):void { _stepDt = value; }
 
     public function get subStepCount():int { return _subStepCount; }
+
     public function set subStepCount(value:int):void { _subStepCount = value; }
 
     private function onAddedToStage(event:Event):void {
@@ -82,11 +85,11 @@ public class RootDisplay extends LayoutGroup {
             _prevTime = getTimer();
         }
         else {
-            var currTime:int    = getTimer();
-            var dt:Number       = _excessDt + (currTime - _prevTime) / 1000.0;
-            var cycleCount:int  = int(dt / _stepDt);
+            var currTime:int = getTimer();
+            var dt:Number = _excessDt + (currTime - _prevTime) / 1000.0;
+            var cycleCount:int = int(dt / _stepDt);
 
-            _excessDt           = dt - _stepDt * cycleCount;
+            _excessDt = dt - _stepDt * cycleCount;
             _prevTime = currTime;
 
             _tirePhysics.step(_stepDt, _subStepCount);
@@ -103,16 +106,18 @@ public class RootDisplay extends LayoutGroup {
     override protected function initialize():void {
         super.initialize();
 
-        //new MetalWorksDesktopTheme();
-        new MinimalDesktopTheme();
+        var theme:MinimalDesktopThemeWithAssetManager = new MinimalDesktopThemeWithAssetManager("Minimal");
+        theme.addEventListener(Event.COMPLETE, onThemeComplete);
+    }
 
+    private function onThemeComplete(e:Event):void {
         layout = new AnchorLayout();
 
-        _settings               = new StackScreenNavigator();
-        _settings.autoSizeMode  = StackScreenNavigator.AUTO_SIZE_MODE_CONTENT;
-        _settings.width         = stage.stageWidth / 3;
-        _settings.layoutData    = new AnchorLayoutData(0, NaN, 0, 0);
-        _settings.clipContent   = true;
+        _settings = new StackScreenNavigator();
+        _settings.autoSizeMode = StackScreenNavigator.AUTO_SIZE_MODE_CONTENT;
+        _settings.width = stage.stageWidth / 3;
+        _settings.layoutData = new AnchorLayoutData(0, NaN, 0, 0);
+        _settings.clipContent = true;
         addChild(_settings);
 
         var mainItem:StackScreenNavigatorItem = new StackScreenNavigatorItem(SettingsMainScreen);
@@ -140,13 +145,13 @@ public class RootDisplay extends LayoutGroup {
 
         _settings.pushScreen(SETTINGS_MAIN_ID);
 
-        _settings.pushTransition    = Slide.createSlideLeftTransition();
-        _settings.popTransition     = Slide.createSlideRightTransition();
+        _settings.pushTransition = Slide.createSlideLeftTransition();
+        _settings.popTransition = Slide.createSlideRightTransition();
 
-        _content                    = new AnimationScreen();
-        _content.layoutData         = new AnchorLayoutData(0, 0, 0, _settings.width);
-        _content.clipContent        = true;
-        _content.tirePhysics        = _tirePhysics;
+        _content = new AnimationScreen();
+        _content.layoutData = new AnchorLayoutData(0, 0, 0, _settings.width);
+        _content.clipContent = true;
+        _content.tirePhysics = _tirePhysics;
         addChild(_content);
     }
 }
