@@ -13,15 +13,8 @@ import feathers.controls.ToggleSwitch;
 import feathers.controls.renderers.DefaultListItemRenderer;
 import feathers.controls.renderers.IListItemRenderer;
 import feathers.data.ListCollection;
-import feathers.events.FeathersEventType;
 import feathers.layout.AnchorLayout;
 import feathers.layout.AnchorLayoutData;
-
-import flash.filesystem.File;
-
-import medkit.object.ObjectOutputStream;
-
-import medkit.object.ObjectUtil;
 
 import starling.display.DisplayObject;
 import starling.events.Event;

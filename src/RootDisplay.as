@@ -10,7 +10,6 @@ import feathers.controls.StackScreenNavigatorItem;
 import feathers.layout.AnchorLayout;
 import feathers.layout.AnchorLayoutData;
 import feathers.motion.Slide;
-import feathers.themes.MinimalDesktopTheme;
 import feathers.themes.MinimalDesktopThemeWithAssetManager;
 
 import flash.ui.GameInput;
@@ -19,7 +18,6 @@ import flash.utils.getTimer;
 import starling.events.Event;
 
 import ui.AnimationScreen;
-
 import ui.ControlsScreen;
 import ui.SettingsMainScreen;
 import ui.WheelDataScreen;

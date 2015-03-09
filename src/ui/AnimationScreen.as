@@ -4,10 +4,8 @@
  * Time: 9:46
  */
 package ui {
-import feathers.controls.Button;
 import feathers.controls.LayoutGroup;
 import feathers.controls.PanelScreen;
-import feathers.controls.Slider;
 import feathers.layout.AnchorLayout;
 import feathers.layout.AnchorLayoutData;
 
