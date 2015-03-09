@@ -55,9 +55,9 @@ public class WorldDataScreen extends PanelScreen {
         _kineticFrictionCoefSlider.minimum = 0.0;
         _kineticFrictionCoefSlider.maximum = 1.0;
         _kineticFrictionCoefSlider.step = 0.1;
-        _kineticFrictionCoefSlider.value = _tirePhysics.coefKf;
+        _kineticFrictionCoefSlider.value = _tirePhysics.coefKF;
         _kineticFrictionCoefSlider.addEventListener(Event.CHANGE, function (e:Event):void {
-            _tirePhysics.coefKf = _kineticFrictionCoefSlider.value;
+            _tirePhysics.coefKF = _kineticFrictionCoefSlider.value;
         });
         UiHelper.setupSlider(_kineticFrictionCoefSlider);
         
@@ -68,6 +68,7 @@ public class WorldDataScreen extends PanelScreen {
         _airDragCoefSlider.value = _tirePhysics.coefDrag;
         _airDragCoefSlider.addEventListener(Event.CHANGE, function (e:Event):void {
             _tirePhysics.coefDrag = _airDragCoefSlider.value;
+            _tirePhysics.validateAirDrag();
         });
         UiHelper.setupSlider(_airDragCoefSlider);
         
@@ -106,6 +107,7 @@ public class WorldDataScreen extends PanelScreen {
         addChild(list);
 
         backButtonHandler = function ():void {
+            _tirePhysics.save();
             dispatchEventWith(Event.COMPLETE);
         };
     }
@@ -116,6 +118,7 @@ public class WorldDataScreen extends PanelScreen {
         backButton.styleNameList.add(Button.ALTERNATE_NAME_BACK_BUTTON);
         backButton.label = "Back";
         backButton.addEventListener(Event.TRIGGERED, function(e:Event):void {
+            _tirePhysics.save();
             dispatchEventWith(Event.COMPLETE);
         });
         header.leftItems = new <DisplayObject>[backButton];

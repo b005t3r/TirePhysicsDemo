@@ -3,7 +3,7 @@
   <component name="FlexBuildConfigurationManager" active="TirePhysicsDemo">
     <configurations>
       <configuration name="TirePhysicsDemo" target-platform="Desktop" pure-as="true" main-class="Main" output-file="Main.swf" output-folder="$MODULE_DIR$/out">
-        <dependencies target-player="12.0">
+        <dependencies>
           <entries>
             <entry module-name="starling" build-configuration-name="starling">
               <dependency linkage="Merged" />
@@ -14,11 +14,19 @@
             <entry module-name="Starling-Extension-Graphics" build-configuration-name="Starling-Extension-Graphics">
               <dependency linkage="Merged" />
             </entry>
+            <entry module-name="MedKit" build-configuration-name="MedKit">
+              <dependency linkage="Merged" />
+            </entry>
           </entries>
           <sdk name="AIR SDK 4.0" />
         </dependencies>
-        <compiler-options />
-        <packaging-air-desktop use-generated-descriptor="false" custom-descriptor-path="$MODULE_DIR$/Main-app.xml" package-file-name="Main" />
+        <compiler-options>
+          <map>
+            <entry key="compiler.debug.swf" value="true" />
+            <entry key="compiler.define" value="CONFIG::desktop&#9;true&#10;CONFIG::web&#9;false" />
+          </map>
+        </compiler-options>
+        <packaging-air-desktop use-generated-descriptor="false" custom-descriptor-path="$MODULE_DIR$/Main-app.xml" package-file-name="TirePhysicsDemo" />
         <packaging-android />
         <packaging-ios />
       </configuration>
@@ -36,6 +44,7 @@
     <orderEntry type="module" module-name="feathers" exported="" />
     <orderEntry type="module" module-name="starling" exported="" />
     <orderEntry type="module" module-name="Starling-Extension-Graphics" exported="" />
+    <orderEntry type="module" module-name="MedKit" exported="" />
   </component>
 </module>
 

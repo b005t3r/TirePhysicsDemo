@@ -4,14 +4,14 @@
  * Time: 9:46
  */
 package ui {
+import feathers.controls.Button;
 import feathers.controls.LayoutGroup;
 import feathers.controls.PanelScreen;
+import feathers.controls.Slider;
 import feathers.layout.AnchorLayout;
 import feathers.layout.AnchorLayoutData;
 
 import starling.display.Quad;
-
-import starling.display.Sprite;
 import starling.display.graphicsEx.GraphicsEx;
 import starling.display.graphicsEx.ShapeEx;
 import starling.events.EnterFrameEvent;
@@ -71,7 +71,7 @@ public class AnimationScreen extends PanelScreen {
         var wheelY:Number           = _animationSprite.height - wheelRadius - lineThickness / 2 - surfaceHeight;
         var wheelAngle:Number       = (-_tirePhysics.wheelAngle % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
         var distanceUnit:Number     = wheelRadius * 2 * Math.PI;
-        var wheelDistance:Number    = (_tirePhysics.wheelPos % distanceUnit) * 100;
+        var wheelDistance:Number    = (((_tirePhysics.wheelPos * 100) % distanceUnit) + distanceUnit) % distanceUnit;
         var loadSize:Number         = Math.sqrt(_tirePhysics.carMass) * 10;
 
         var graphics:GraphicsEx = _canvas.graphics;
@@ -83,7 +83,7 @@ public class AnimationScreen extends PanelScreen {
         graphics.drawRect(-_animationSprite.width, _animationSprite.height - surfaceHeight, 3 * _animationSprite.width, 2 * surfaceHeight);
         graphics.endFill();
 
-        for(var x:Number = wheelX + wheelDistance -_animationSprite.width; x < 3 * _animationSprite.width; x += distanceUnit) {
+        for(var x:Number = wheelX + wheelDistance - int(_animationSprite.width / distanceUnit) * distanceUnit; x < 3 * _animationSprite.width; x += distanceUnit) {
             graphics.moveTo(x, _animationSprite.height - surfaceHeight);
             graphics.lineTo(x, _animationSprite.height + surfaceHeight)
         }

@@ -128,7 +128,7 @@ public class ControlsScreen extends PanelScreen {
         _accelerationLabel .text = int(_tirePhysics.acceleration * 100 * 0.36) / 100 + " [km/h^2]";
 
         _angAccelerationLabel = new Label();
-        _angAccelerationLabel.text = int(_tirePhysics.angAcceletarion * _tirePhysics.wheelRadius * 100 * 0.36) / 100 + " [km/h^2]";
+        _angAccelerationLabel.text = int(_tirePhysics.angAcceleration * _tirePhysics.wheelRadius * 100 * 0.36) / 100 + " [km/h^2]";
 
         _frictionLabel = new Label();
         _frictionLabel.text = _tirePhysics.wasStaticFriction ? "Static" : "Kinetic";
@@ -215,7 +215,7 @@ public class ControlsScreen extends PanelScreen {
         _velocityLabel.text         = int(_tirePhysics.wheelPosVel * 100 * 3.6) / 100 + " [km/h]";
         _angVelocityLabel.text      = int(_tirePhysics.wheelAngVel * _tirePhysics.wheelRadius * 100 * 3.6) / 100 + " [km/h]";
         _accelerationLabel .text    = int(_tirePhysics.acceleration * 100 * 0.36) / 100 + " [km/h^2]";
-        _angAccelerationLabel.text  = int(_tirePhysics.angAcceletarion * _tirePhysics.wheelRadius * 100 * 0.36) / 100 + " [km/h^2]";
+        _angAccelerationLabel.text  = int(_tirePhysics.angAcceleration * _tirePhysics.wheelRadius * 100 * 0.36) / 100 + " [km/h^2]";
         _frictionLabel.text         = _tirePhysics.wasStaticFriction ? "Static" : "Kinetic";
         _slipRatioLabel.text        = _tirePhysics.wasStaticFriction ? "-" : int(_tirePhysics.slipRatio * 100) + "%";
         _forceRatioLabel.text       = _tirePhysics.wasStaticFriction ? "100%" : int(_tirePhysics.forceRatio * 100) + "%";

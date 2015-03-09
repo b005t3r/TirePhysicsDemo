@@ -48,15 +48,14 @@ public class RootDisplay extends LayoutGroup {
 
         autoSizeMode = LayoutGroup.AUTO_SIZE_MODE_STAGE;
 
-        _tirePhysics = new TirePhysics();
+        if((_tirePhysics = TirePhysics.load()) == null)
+            _tirePhysics = new TirePhysics();
     }
 
     public function get stepDt():Number { return _stepDt; }
-
     public function set stepDt(value:Number):void { _stepDt = value; }
 
     public function get subStepCount():int { return _subStepCount; }
-
     public function set subStepCount(value:int):void { _subStepCount = value; }
 
     private function onAddedToStage(event:Event):void {
@@ -115,7 +114,7 @@ public class RootDisplay extends LayoutGroup {
 
         _settings = new StackScreenNavigator();
         _settings.autoSizeMode = StackScreenNavigator.AUTO_SIZE_MODE_CONTENT;
-        _settings.width = stage.stageWidth / 3;
+        _settings.width = 240;
         _settings.layoutData = new AnchorLayoutData(0, NaN, 0, 0);
         _settings.clipContent = true;
         addChild(_settings);

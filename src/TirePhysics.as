@@ -4,8 +4,13 @@
  * Time: 9:27
  */
 package {
+import flash.filesystem.File;
 
-public class TirePhysics {
+import medkit.object.ObjectInputStream;
+import medkit.object.ObjectOutputStream;
+import medkit.object.Serializable;
+
+public class TirePhysics implements Serializable {
     public static function sign(value:Number):Number {
         if(value < 0)       return -1.0;
         else if(value > 0)  return 1.0;
@@ -26,10 +31,11 @@ public class TirePhysics {
     public var brakeTorque:Number           = 3200;
     public var carMass:Number               = 400;
     //public var wheelInertia:Number          = 0.5 * wheelMass * wheelRadius * wheelRadius;
+    public var wheelInertiaLocked:Boolean   = true;
     public var wheelInertia:Number          = 20;
 
     public var coefSF:Number                = 0.9;
-    public var coefKf:Number                = 1;
+    public var coefKF:Number                = 1;
     public var airDensity:Number            = 1.29;
     public var frontalArea:Number           = 2.2; // = 1;
     public var coefDrag:Number              = 0.3; // = 0.525; // for the vehicle's shape
@@ -49,7 +55,7 @@ public class TirePhysics {
     public var slipRatio:Number             = 0;
     public var forceRatio:Number            = 0;
     public var responseTorque:Number        = 0;
-    public var angAcceletarion:Number       = 0;
+    public var angAcceleration:Number       = 0;
     public var acceleration:Number          = 0;
 
     public var airDragForce:Number          = 0;
@@ -114,7 +120,7 @@ public class TirePhysics {
                 forceRatio          = 1;
                 responseTorque      = torqueForce * wheelRadius;
                 acceleration        = acc;
-                angAcceletarion     = -acc / wheelRadius;
+                angAcceleration     = -acc / wheelRadius;
             }
             else {
                 // kinetic friction, wheel is sliding
@@ -124,7 +130,7 @@ public class TirePhysics {
                 if(Math.abs(wheelSurfaceVel) < 0.0001)
                     wheelSurfaceVel = 0.0;
 
-                var kineticResponseForce:Number = -sign(wheelSurfaceVel) * normalForce * coefKf * getLongForceRatio(slipRatio);
+                var kineticResponseForce:Number = -sign(wheelSurfaceVel) * normalForce * coefKF * getLongForceRatio(slipRatio);
 
                 // feed friction force back into torque
                 var kineticResponseTorque:Number= kineticResponseForce * wheelRadius;
@@ -145,17 +151,11 @@ public class TirePhysics {
                 if(! sameSign(kOldPosVel, wheelPosVel, false) && torqueForce != 0 && ! sameSign(torqueForce, wheelPosVel, false))
                     wheelPosVel = 0;
 
-                //var newWheelSurfaceVel:Number = wheelPosVel + wheelAngVel * wheelRadius;
-
-                // both velocities are temporarily on par, try switching back to static friction
-                //if(! sameSign(wheelSurfaceVel, newWheelSurfaceVel, false) || Math.abs(newWheelSurfaceVel) < 0.01)
-                //    useStaticFriction = true;
-
                 wasStaticFriction   = false;
                 forceRatio          = getLongForceRatio(slipRatio);
                 responseTorque      = kineticResponseTorque;
                 acceleration        = posAcc;
-                angAcceletarion     = angAcc;
+                angAcceleration     = angAcc;
             }
 
             // common integration
@@ -163,7 +163,9 @@ public class TirePhysics {
             wheelAngle += wheelAngVel * dt;
 
             const minVel:Number = 0.15;
-            if(Math.abs(wheelPosVel) < minVel)
+            if(wasStaticFriction)
+                slipRatio = 0;
+            else if(Math.abs(wheelPosVel) < minVel)
                 slipRatio = wheelPosVel < 0 ? direction * (wheelAngVel * wheelRadius - minVel) / minVel : direction * (wheelAngVel * wheelRadius + minVel) / minVel;
             else
                 slipRatio = direction * (wheelAngVel * wheelRadius + wheelPosVel) / Math.abs(wheelPosVel);
@@ -176,7 +178,14 @@ public class TirePhysics {
     }
 
     public function validateInertia():void {
+        if(wheelInertiaLocked)
+            return;
+
         wheelInertia = 0.5 * wheelMass * wheelRadius * wheelRadius;
+    }
+
+    public function validateAirDrag():void {
+        coefAirDrag = 0.5 * airDensity * frontalArea * coefDrag;
     }
 
     public function toString():String {
@@ -198,6 +207,68 @@ public class TirePhysics {
 
         return s;
     }
+
+    public function readObject(input:ObjectInputStream):void {
+        wheelMass           = input.readNumber("wheelMass");
+        wheelRadius         = input.readNumber("wheelRadius");
+        wheelTorque         = input.readNumber("wheelTorque");
+        brakeTorque         = input.readNumber("brakeTorque");
+        carMass             = input.readNumber("carMass");
+        wheelInertiaLocked  = input.readBoolean("wheelInertiaLocked");
+        wheelInertia        = input.readNumber("wheelInertia");
+
+        coefSF              = input.readNumber("coefSF");
+        coefKF              = input.readNumber("coefKf");
+        frontalArea         = input.readNumber("frontalArea");
+        coefDrag            = input.readNumber("coefDrag");
+        coefRollingDrag     = input.readNumber("coefRollingDrag");
+
+        validateInertia();
+        validateAirDrag();
+    }
+
+    public function writeObject(output:ObjectOutputStream):void {
+        output.writeNumber(wheelMass, "wheelMass");
+        output.writeNumber(wheelRadius, "wheelRadius");
+        output.writeNumber(wheelTorque, "wheelTorque");
+        output.writeNumber(brakeTorque, "brakeTorque");
+        output.writeNumber(carMass, "carMass");
+        output.writeBoolean(wheelInertiaLocked, "wheelInertiaLocked");
+        output.writeNumber(wheelInertia, "wheelInertia");
+        output.writeNumber(coefSF, "coefSF");
+        output.writeNumber(coefKF, "coefKf");
+        output.writeNumber(frontalArea, "frontalArea");
+        output.writeNumber(coefDrag, "coefDrag");
+        output.writeNumber(coefRollingDrag, "coefRollingDrag");
+    }
+
+    CONFIG::desktop
+    public static function load():TirePhysics {
+        var retVal:TirePhysics = null;
+
+        try {
+            var input:ObjectInputStream = ObjectInputStream.readFromFile(File.applicationStorageDirectory.resolvePath("settings"));
+            retVal = input.readObject("root") as TirePhysics;
+        }
+        catch(e:Error) {
+            return null;
+        }
+
+        return retVal;
+    }
+
+    CONFIG::web
+    public static function load():TirePhysics { return null; }
+
+    CONFIG::desktop
+    public function save():void {
+        var output:ObjectOutputStream = new ObjectOutputStream();
+        output.writeObject(this, "root");
+        output.saveToFile(File.applicationStorageDirectory.resolvePath("settings"));
+    }
+
+    CONFIG::web
+    public function save():void { }
 
     private function getLongForceRatio(slipRatio:Number):Number {
         if(slipRatio <  longSlipRatios[0])                          return longForceRatios[0];

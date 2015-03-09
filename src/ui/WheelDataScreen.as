@@ -10,9 +10,18 @@ import feathers.controls.List;
 import feathers.controls.PanelScreen;
 import feathers.controls.Slider;
 import feathers.controls.ToggleSwitch;
+import feathers.controls.renderers.DefaultListItemRenderer;
+import feathers.controls.renderers.IListItemRenderer;
 import feathers.data.ListCollection;
+import feathers.events.FeathersEventType;
 import feathers.layout.AnchorLayout;
 import feathers.layout.AnchorLayoutData;
+
+import flash.filesystem.File;
+
+import medkit.object.ObjectOutputStream;
+
+import medkit.object.ObjectUtil;
 
 import starling.display.DisplayObject;
 import starling.events.Event;
@@ -27,10 +36,13 @@ public class WheelDataScreen extends PanelScreen {
     private var _maxAccTorqueSlider:Slider;
     private var _maxBrakingTorqueSlider:Slider;
 
+    private var _list:List;
+
     private var _tirePhysics:TirePhysics;
 
     public function get tirePhysics():TirePhysics { return _tirePhysics; }
     public function set tirePhysics(value:TirePhysics):void { _tirePhysics = value; }
+
 
     override protected function initialize():void {
         super.initialize();
@@ -65,12 +77,12 @@ public class WheelDataScreen extends PanelScreen {
         });
         UiHelper.setupSlider(_wheelRadiusSlider);
 
-        _wheelInertiaSlider = new Slider();
+        _wheelInertiaSlider = new SecretSlider();
         _wheelInertiaSlider.minimum = 0.1;
         _wheelInertiaSlider.maximum = 50;
         _wheelInertiaSlider.step = 0.1;
         _wheelInertiaSlider.value = 20;
-        _wheelInertiaSlider.isEnabled = false;
+        _wheelInertiaSlider.isEnabled = _tirePhysics.wheelInertiaLocked;
         _wheelInertiaSlider.addEventListener(Event.CHANGE, function (e:Event):void {
             _tirePhysics.wheelInertia = _wheelInertiaSlider.value;
         });
@@ -79,16 +91,34 @@ public class WheelDataScreen extends PanelScreen {
         _wheelInertiaLocked = new ToggleSwitch();
         _wheelInertiaLocked.onText = "Yes";
         _wheelInertiaLocked.offText = "No";
-        _wheelInertiaLocked.isSelected = true;
+        _wheelInertiaLocked.isSelected = _tirePhysics.wheelInertiaLocked;
         _wheelInertiaLocked.addEventListener(Event.CHANGE, function (e:Event):void {
-            if(_wheelInertiaLocked.isSelected) {
+            var sliderItem:Object = null, sliderIndex:int = -1;
+
+            var count:int = _list.dataProvider.length;
+            for(var i:int = 0; i < count; ++i) {
+                var item:Object = _list.dataProvider.getItemAt(i);
+
+                if(item.accessory != _wheelInertiaSlider)
+                    continue;
+
+                sliderItem = item;
+                sliderIndex = i;
+                break;
+            }
+
+            _tirePhysics.wheelInertiaLocked = _wheelInertiaLocked.isSelected;
+
+            if(! _tirePhysics.wheelInertiaLocked) {
+                sliderItem.enabled = false;
                 _tirePhysics.validateInertia();
-                _wheelInertiaSlider.isEnabled = false;
             }
             else {
+                sliderItem.enabled = true;
                 _tirePhysics.wheelInertia = _wheelInertiaSlider.value;
-                _wheelInertiaSlider.isEnabled = true;
             }
+
+            _list.dataProvider.updateItemAt(sliderIndex);
         });
 
         _loadMassSlider = new Slider();
@@ -131,26 +161,36 @@ public class WheelDataScreen extends PanelScreen {
         });
         UiHelper.setupSlider(_maxBrakingTorqueSlider);
 
-        var list:List = new List();
-        list.isSelectable = false;
-        list.dataProvider = new ListCollection([
+        _list = new List();
+        _list.isSelectable = false;
+        _list.dataProvider = new ListCollection([
             { label : "Wheel mass", accessory : _wheelMassSlider },
             { label : "Wheel radius", accessory : _wheelRadiusSlider },
             { label : "Wheel inertia locked", accessory : _wheelInertiaLocked},
-            { label : "Wheel inertia", accessory : _wheelInertiaSlider},
+            { label : "Wheel inertia", accessory : _wheelInertiaSlider, enabled : _tirePhysics.wheelInertiaLocked},
             { label : "Load mass", accessory : _loadMassSlider},
             { label : "Frontal area", accessory : _frontalAreaSlider},
             { label : "Acc. torque", accessory : _maxAccTorqueSlider},
             { label : "Braking torque", accessory : _maxBrakingTorqueSlider},
         ]);
-        list.layoutData = new AnchorLayoutData(0, 0, 0, 0);
-        list.clipContent = false;
-        list.autoHideBackground = true;
-        addChild(list);
+        _list.layoutData = new AnchorLayoutData(0, 0, 0, 0);
+        _list.clipContent = false;
+        _list.autoHideBackground = true;
+        _list.itemRendererFactory = function():IListItemRenderer {
+            var renderer:DefaultListItemRenderer = new DefaultListItemRenderer();
+            renderer.itemHasEnabled = true;
+
+            return renderer;
+        };
+//        list.addEventListener(FeathersEventType.CREATION_COMPLETE, function(e:Event):void {
+//            _wheelInertiaSlider.isEnabled = _tirePhysics.wheelInertiaLocked;
+//        });
+        addChild(_list);
 
         headerFactory = customHeaderFactory;
 
         backButtonHandler = function ():void {
+            _tirePhysics.save();
             dispatchEventWith(Event.COMPLETE);
         };
     }
@@ -161,10 +201,24 @@ public class WheelDataScreen extends PanelScreen {
         backButton.styleNameList.add(Button.ALTERNATE_NAME_BACK_BUTTON);
         backButton.label = "Back";
         backButton.addEventListener(Event.TRIGGERED, function(e:Event):void {
+            _tirePhysics.save();
             dispatchEventWith(Event.COMPLETE);
         });
         header.leftItems = new <DisplayObject>[backButton];
         return header;
     }
 }
+}
+
+import feathers.controls.Slider;
+
+class SecretSlider extends Slider {
+
+    override public function set isEnabled(value:Boolean):void {
+        super.isEnabled = value;
+    }
+
+    override public function get isEnabled():Boolean {
+        return super.isEnabled;
+    }
 }

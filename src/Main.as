@@ -5,8 +5,10 @@ import flash.events.Event;
 import flash.geom.Rectangle;
 
 import starling.core.Starling;
+import starling.utils.HAlign;
+import starling.utils.VAlign;
 
-[SWF(width="720", height="480", backgroundColor="#333333", frameRate="60")]
+[SWF(width="1024", height="768", backgroundColor="#999999", frameRate="60")]
 public class Main extends Sprite {
     private var _starling:Starling;
 
@@ -29,6 +31,8 @@ public class Main extends Sprite {
         viewPort.width          = stage.stageWidth;
         viewPort.height         = stage.stageHeight;
         _starling.viewPort      = viewPort;
+
+        _starling.showStatsAt(HAlign.RIGHT, VAlign.BOTTOM);
     }
 }
 }
