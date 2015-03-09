@@ -92,9 +92,9 @@ public class WheelDataScreen extends PanelScreen {
         });
 
         _loadMassSlider = new Slider();
-        _loadMassSlider.minimum = 5;
-        _loadMassSlider.maximum = 500;
-        _loadMassSlider.step = 1;
+        _loadMassSlider.minimum = 10;
+        _loadMassSlider.maximum = 1000;
+        _loadMassSlider.step = 10;
         _loadMassSlider.value = _tirePhysics.carMass;
         _loadMassSlider.addEventListener(Event.CHANGE, function (e:Event):void {
             _tirePhysics.carMass = _loadMassSlider.value;

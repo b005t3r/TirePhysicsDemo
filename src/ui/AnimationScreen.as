@@ -71,12 +71,8 @@ public class AnimationScreen extends PanelScreen {
         var wheelY:Number           = _animationSprite.height - wheelRadius - lineThickness / 2 - surfaceHeight;
         var wheelAngle:Number       = (-_tirePhysics.wheelAngle % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
         var distanceUnit:Number     = wheelRadius * 2 * Math.PI;
-        var wheelDistance:Number    = (_tirePhysics.wheelPos * 100) % distanceUnit;
-
-        var lineBeginX:Number       = wheelX + Math.sin(wheelAngle) * (lineThickness * 2);
-        var lineBeginY:Number       = wheelY + Math.cos(wheelAngle) * (lineThickness * 2);
-        var lineEndX:Number         = wheelX + Math.sin(wheelAngle) * (wheelRadius - lineThickness * 2);
-        var lineEndY:Number         = wheelY + Math.cos(wheelAngle) * (wheelRadius - lineThickness * 2);
+        var wheelDistance:Number    = (_tirePhysics.wheelPos % distanceUnit) * 100;
+        var loadSize:Number         = Math.sqrt(_tirePhysics.carMass) * 10;
 
         var graphics:GraphicsEx = _canvas.graphics;
         graphics.clear();
@@ -98,8 +94,21 @@ public class AnimationScreen extends PanelScreen {
         graphics.beginFill(FILL_COLOR);
         graphics.drawCircle(wheelX, wheelY, wheelRadius);
         graphics.endFill();
+
+        var lineBeginX:Number       = wheelX + Math.sin(wheelAngle) * (lineThickness * 2);
+        var lineBeginY:Number       = wheelY + Math.cos(wheelAngle) * (lineThickness * 2);
+        var lineEndX:Number         = wheelX + Math.sin(wheelAngle) * (wheelRadius - lineThickness * 2);
+        var lineEndY:Number         = wheelY + Math.cos(wheelAngle) * (wheelRadius - lineThickness * 2);
+
         graphics.moveTo(lineBeginX, lineBeginY);
         graphics.lineTo(lineEndX, lineEndY);
+
+        // load
+        graphics.lineStyle(lineThickness, LOAD_BORDER_COLOR);
+
+        graphics.beginFill(FILL_COLOR);
+        graphics.drawRect(wheelX - loadSize / 2, wheelY - wheelRadius - loadSize - lineThickness, loadSize, loadSize);
+        graphics.endFill();
     }
 }
 }

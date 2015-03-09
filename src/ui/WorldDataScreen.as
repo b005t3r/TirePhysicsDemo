@@ -43,7 +43,7 @@ public class WorldDataScreen extends PanelScreen {
 
         _staticFrictionCoefSlider = new Slider();
         _staticFrictionCoefSlider.minimum = 0;
-        _staticFrictionCoefSlider.maximum = 1.2;
+        _staticFrictionCoefSlider.maximum = 1.0;
         _staticFrictionCoefSlider.step = 0.1;
         _staticFrictionCoefSlider.value = _tirePhysics.coefSF;
         _staticFrictionCoefSlider.addEventListener(Event.CHANGE, function (e:Event):void {
@@ -52,8 +52,8 @@ public class WorldDataScreen extends PanelScreen {
         UiHelper.setupSlider(_staticFrictionCoefSlider);
         
         _kineticFrictionCoefSlider = new Slider();
-        _kineticFrictionCoefSlider.minimum = 0.1;
-        _kineticFrictionCoefSlider.maximum = 1.2;
+        _kineticFrictionCoefSlider.minimum = 0.0;
+        _kineticFrictionCoefSlider.maximum = 1.0;
         _kineticFrictionCoefSlider.step = 0.1;
         _kineticFrictionCoefSlider.value = _tirePhysics.coefKf;
         _kineticFrictionCoefSlider.addEventListener(Event.CHANGE, function (e:Event):void {
