@@ -22,13 +22,13 @@ public class TirePhysics {
     public const gravity:Number             = 9.81;
     public var wheelMass:Number             = 20;
     public var wheelRadius:Number           = 0.33;
-    public var wheelTorque:Number           = 2000;
-    public var brakeTorque:Number           = 2000;
+    public var wheelTorque:Number           = 1400;
+    public var brakeTorque:Number           = 3200;
     public var carMass:Number               = 400;
     //public var wheelInertia:Number          = 0.5 * wheelMass * wheelRadius * wheelRadius;
     public var wheelInertia:Number          = 20;
 
-    public var coefSF:Number                = 0.15;
+    public var coefSF:Number                = 0.9;
     public var coefKf:Number                = 1;
     public var airDensity:Number            = 1.29;
     public var frontalArea:Number           = 2.2; // = 1;
@@ -47,6 +47,10 @@ public class TirePhysics {
     public var useStaticFriction:Boolean    = true;
     public var wasStaticFriction:Boolean    = true;
     public var slipRatio:Number             = 0;
+    public var forceRatio:Number            = 0;
+    public var responseTorque:Number        = 0;
+    public var angAcceletarion:Number       = 0;
+    public var acceleration:Number          = 0;
 
     public var airDragForce:Number          = 0;
     public var airDragTorque:Number         = 0;
@@ -106,7 +110,11 @@ public class TirePhysics {
                 if(! sameSign(oldPosVel, wheelPosVel, false) && ! sameSign(torqueForce, wheelPosVel, false))
                     wheelPosVel = wheelAngVel = 0;
 
-                wasStaticFriction = true;
+                wasStaticFriction   = true;
+                forceRatio          = 1;
+                responseTorque      = torqueForce * wheelRadius;
+                acceleration        = acc;
+                angAcceletarion     = -acc / wheelRadius;
             }
             else {
                 // kinetic friction, wheel is sliding
@@ -119,8 +127,8 @@ public class TirePhysics {
                 var kineticResponseForce:Number = -sign(wheelSurfaceVel) * normalForce * coefKf * getLongForceRatio(slipRatio);
 
                 // feed friction force back into torque
-                var responseTorque:Number       = kineticResponseForce * wheelRadius;
-                var angAcc:Number               = (appliedTorque + responseTorque + brakingTorque + totalDragTorque) / wheelInertia;
+                var kineticResponseTorque:Number= kineticResponseForce * wheelRadius;
+                var angAcc:Number               = (appliedTorque + kineticResponseTorque + brakingTorque + totalDragTorque) / wheelInertia;
                 var oldAngVel:Number            = wheelAngVel;
                 wheelAngVel                    += angAcc * dt;
 
@@ -130,20 +138,24 @@ public class TirePhysics {
                 wheelPosVel            += posAcc * dt;
 
                 // drag was high enough to stop body's roll
-                if(! sameSign(oldAngVel, wheelAngVel, false) && (appliedTorque != 0 || brakingTorque != 0) && ! sameSign(appliedTorque, wheelAngVel, false))
+                if(! sameSign(oldAngVel, wheelAngVel, false) && (appliedTorque != 0 && ! sameSign(appliedTorque, wheelAngVel, false) || brakingTorque != 0 && sameSign(brakingTorque, wheelAngVel, false)))
                     wheelAngVel = 0;
 
                 // drag was high enough to stop the body
                 if(! sameSign(kOldPosVel, wheelPosVel, false) && torqueForce != 0 && ! sameSign(torqueForce, wheelPosVel, false))
                     wheelPosVel = 0;
 
-                var newWheelSurfaceVel:Number = wheelPosVel + wheelAngVel * wheelRadius;
+                //var newWheelSurfaceVel:Number = wheelPosVel + wheelAngVel * wheelRadius;
 
                 // both velocities are temporarily on par, try switching back to static friction
-                if(! sameSign(wheelSurfaceVel, newWheelSurfaceVel, false) || Math.abs(newWheelSurfaceVel) < 0.01)
-                    useStaticFriction = true;
+                //if(! sameSign(wheelSurfaceVel, newWheelSurfaceVel, false) || Math.abs(newWheelSurfaceVel) < 0.01)
+                //    useStaticFriction = true;
 
-                wasStaticFriction = false;
+                wasStaticFriction   = false;
+                forceRatio          = getLongForceRatio(slipRatio);
+                responseTorque      = kineticResponseTorque;
+                acceleration        = posAcc;
+                angAcceletarion     = angAcc;
             }
 
             // common integration
@@ -157,6 +169,9 @@ public class TirePhysics {
                 slipRatio = direction * (wheelAngVel * wheelRadius + wheelPosVel) / Math.abs(wheelPosVel);
 
             //slipRatio   = wheelPosVel != 0 ? (wheelAngVel * wheelRadius + wheelPosVel) / Math.abs(wheelPosVel) : 0.0;
+
+            if(Math.abs(slipRatio) < 0.01)
+                useStaticFriction = true;
         }
     }
 
