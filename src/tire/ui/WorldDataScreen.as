@@ -3,7 +3,7 @@
  * Date: 06/03/15
  * Time: 11:04
  */
-package ui {
+package tire.ui {
 import feathers.controls.Button;
 import feathers.controls.Header;
 import feathers.controls.List;
@@ -15,6 +15,9 @@ import feathers.layout.AnchorLayoutData;
 
 import starling.display.DisplayObject;
 import starling.events.Event;
+
+import tire.RootDisplay;
+import tire.TirePhysics;
 
 public class WorldDataScreen extends PanelScreen {
     private var _staticFrictionCoefSlider:Slider;
@@ -62,7 +65,7 @@ public class WorldDataScreen extends PanelScreen {
         UiHelper.setupSlider(_kineticFrictionCoefSlider);
         
         _airDragCoefSlider = new Slider();
-        _airDragCoefSlider.minimum = 0.1;
+        _airDragCoefSlider.minimum = 0;
         _airDragCoefSlider.maximum = 2;
         _airDragCoefSlider.step = 0.1;
         _airDragCoefSlider.value = _tirePhysics.coefDrag;
@@ -73,7 +76,7 @@ public class WorldDataScreen extends PanelScreen {
         UiHelper.setupSlider(_airDragCoefSlider);
         
         _rollingDragCoefSlider = new Slider();
-        _rollingDragCoefSlider.minimum = 1;
+        _rollingDragCoefSlider.minimum = 0;
         _rollingDragCoefSlider.maximum = 25;
         _rollingDragCoefSlider.step = 1;
         _rollingDragCoefSlider.value = _tirePhysics.coefRollingDrag * 1000;

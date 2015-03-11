@@ -3,7 +3,7 @@
  * Date: 06/03/15
  * Time: 13:46
  */
-package ui {
+package tire.ui {
 import feathers.controls.Button;
 import feathers.controls.Slider;
 import feathers.skins.AddOnFunctionStyleProvider;

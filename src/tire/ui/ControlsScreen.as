@@ -3,7 +3,7 @@
  * Date: 06/03/15
  * Time: 15:36
  */
-package ui {
+package tire.ui {
 import feathers.controls.Button;
 import feathers.controls.Header;
 import feathers.controls.Label;
@@ -18,6 +18,9 @@ import feathers.layout.VerticalLayoutData;
 import starling.display.DisplayObject;
 import starling.events.EnterFrameEvent;
 import starling.events.Event;
+
+import tire.RootDisplay;
+import tire.TirePhysics;
 
 public class ControlsScreen extends PanelScreen {
     private var _throttleSlider:Slider;

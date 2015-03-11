@@ -3,7 +3,7 @@
  * Date: 05/03/15
  * Time: 9:27
  */
-package {
+package tire {
 import flash.filesystem.File;
 
 import medkit.object.ObjectInputStream;

@@ -3,7 +3,7 @@
  * Date: 05/03/15
  * Time: 10:40
  */
-package {
+package tire {
 import feathers.controls.LayoutGroup;
 import feathers.controls.StackScreenNavigator;
 import feathers.controls.StackScreenNavigatorItem;
@@ -17,11 +17,11 @@ import flash.utils.getTimer;
 
 import starling.events.Event;
 
-import ui.AnimationScreen;
-import ui.ControlsScreen;
-import ui.SettingsMainScreen;
-import ui.WheelDataScreen;
-import ui.WorldDataScreen;
+import tire.ui.AnimationScreen;
+import tire.ui.ControlsScreen;
+import tire.ui.SettingsMainScreen;
+import tire.ui.WheelDataScreen;
+import tire.ui.WorldDataScreen;
 
 public class RootDisplay extends LayoutGroup {
     private static const SETTINGS_MAIN_ID:String = "settingsMain";

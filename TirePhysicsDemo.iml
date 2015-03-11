@@ -2,7 +2,7 @@
 <module type="Flex" version="4">
   <component name="FlexBuildConfigurationManager" active="TirePhysicsDemo">
     <configurations>
-      <configuration name="TirePhysicsDemo" target-platform="Desktop" pure-as="true" main-class="Main" output-file="Main.swf" output-folder="$MODULE_DIR$/out">
+      <configuration name="TirePhysicsDemo" target-platform="Desktop" pure-as="true" main-class="tire.Main" output-file="Main.swf" output-folder="$MODULE_DIR$/out">
         <dependencies>
           <entries>
             <entry module-name="starling" build-configuration-name="starling">

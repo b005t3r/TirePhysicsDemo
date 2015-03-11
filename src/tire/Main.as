@@ -1,4 +1,4 @@
-package {
+package tire {
 
 import flash.display.Sprite;
 import flash.events.Event;

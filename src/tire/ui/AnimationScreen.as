@@ -3,7 +3,7 @@
  * Date: 08/03/15
  * Time: 9:46
  */
-package ui {
+package tire.ui {
 import feathers.controls.LayoutGroup;
 import feathers.controls.PanelScreen;
 import feathers.layout.AnchorLayout;
@@ -14,6 +14,8 @@ import starling.display.graphicsEx.GraphicsEx;
 import starling.display.graphicsEx.ShapeEx;
 import starling.events.EnterFrameEvent;
 import starling.events.Event;
+
+import tire.TirePhysics;
 
 public class AnimationScreen extends PanelScreen {
     private static const WHEEL_BORDER_COLOR:uint    = 0xFF8F00;

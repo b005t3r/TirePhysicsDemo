@@ -3,7 +3,7 @@
  * Date: 05/03/15
  * Time: 15:38
  */
-package ui {
+package tire.ui {
 import feathers.controls.List;
 import feathers.controls.PanelScreen;
 import feathers.controls.renderers.DefaultListItemRenderer;

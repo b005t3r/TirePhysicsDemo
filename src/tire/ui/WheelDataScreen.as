@@ -3,7 +3,7 @@
  * Date: 05/03/15
  * Time: 16:38
  */
-package ui {
+package tire.ui {
 import feathers.controls.Button;
 import feathers.controls.Header;
 import feathers.controls.List;
@@ -18,6 +18,8 @@ import feathers.layout.AnchorLayoutData;
 
 import starling.display.DisplayObject;
 import starling.events.Event;
+
+import tire.TirePhysics;
 
 public class WheelDataScreen extends PanelScreen {
     private var _wheelMassSlider:Slider;
