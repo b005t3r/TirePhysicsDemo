@@ -17,6 +17,9 @@
             <entry module-name="MedKit" build-configuration-name="MedKit">
               <dependency linkage="Merged" />
             </entry>
+            <entry module-name="Plugs" build-configuration-name="Plugs">
+              <dependency linkage="Merged" />
+            </entry>
           </entries>
           <sdk name="AIR SDK 4.0" />
         </dependencies>
@@ -45,6 +48,7 @@
     <orderEntry type="module" module-name="starling" exported="" />
     <orderEntry type="module" module-name="Starling-Extension-Graphics" exported="" />
     <orderEntry type="module" module-name="MedKit" exported="" />
+    <orderEntry type="module" module-name="Plugs" exported="" />
   </component>
 </module>
 
