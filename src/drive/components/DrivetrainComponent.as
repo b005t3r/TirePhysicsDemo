@@ -9,6 +9,8 @@ import plugs.inputs.NumberInput;
 import plugs.outputs.NumberOutput;
 import plugs.processors.AbstractProcessor;
 
+use namespace drivetrain_internal;
+
 public class DrivetrainComponent extends AbstractProcessor {
     protected var _torqueInput:NumberInput;
     protected var _inertiaInput:NumberInput;
@@ -18,8 +20,8 @@ public class DrivetrainComponent extends AbstractProcessor {
     protected var _angularAccelerationOutput:NumberOutput;
     protected var _effectiveInertiaOutput:NumberOutput;
 
-    protected var _previousComponentInput:DrivetrainComponentInput;
-    protected var _previousComponentOutput:DrivetrainComponentOutput;
+    drivetrain_internal var _previousComponentInput:DrivetrainComponentInput;
+    drivetrain_internal var _previousComponentOutput:DrivetrainComponentOutput;
 
     protected var _nextComponentInput:DrivetrainComponentInput;
     protected var _nextComponentOutput:DrivetrainComponentOutput;
