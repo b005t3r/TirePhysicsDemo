@@ -171,9 +171,9 @@ public class DrivetrainComponent extends AbstractProcessor {
             return pullPreviousComponentData(outputConnection);
 
         else if(outputConnection.output == _totalTorqueOutput)
-            return pullTotalTorque(outputConnection);
+            return pullTotalTorque();
         else if(outputConnection.output == _effectiveInertiaOutput)
-            return pullEffectiveInertia(outputConnection);
+            return pullEffectiveInertia();
         else
             throw new ArgumentError("invalid connection");
     }
@@ -182,105 +182,77 @@ public class DrivetrainComponent extends AbstractProcessor {
         return _gearRatioInput.connections.size() > 0
             ? _gearRatioInput.connections.get(0).pullData()
             : 1
-            ;
+        ;
     }
 
     protected function getInputTorque():Number {
         return _torqueInput.connections.size() > 0
             ? _torqueInput.connections.get(0).pullData()
             : 0
-            ;
+        ;
     }
 
     protected function getInputInertia():Number {
         return _inertiaInput.connections.size() > 0
             ? _inertiaInput.connections.get(0).pullData()
             : 0
-            ;
+        ;
     }
 
     protected function pullNextComponentData(outputConnection:Connection):DrivetrainComponentData {
-        //getNextInputData(_componentData);
-        getInputComponentData(_componentData, _nextComponentInput.connections.size() > 0 ? _nextComponentInput.connections.get(0) : null);
+        if(_nextComponentInput.connections.size() > 0) {
+            var nextData:DrivetrainComponentData    = _nextComponentInput.connections.get(0).pullData();
 
-        _componentData.gearRatios[_componentData.count] = getInputGearRatio();
-        _componentData.inertias[_componentData.count]   = getInputInertia();
-        _componentData.torques[_componentData.count]    = getInputTorque();
-        ++_componentData.count;
+            _componentData.combinedTorque           = nextData.combinedTorque / nextData.gearRatio + getInputTorque();
+            _componentData.combinedEffectiveInertia = nextData.combinedEffectiveInertia / (nextData.gearRatio * nextData.gearRatio) + getInputInertia();
+            _componentData.gearRatio                = getInputGearRatio();
+        }
+        else {
+            _componentData.gearRatio                = getInputGearRatio();
+            _componentData.combinedTorque           = getInputTorque();
+            _componentData.combinedEffectiveInertia = getInputInertia();
+        }
 
         return _componentData;
     }
 
     protected function pullPreviousComponentData(outputConnection:Connection):DrivetrainComponentData {
-        //getPreviousInputData(_componentData);
-        getInputComponentData(_componentData, _previousComponentInput.connections.size() > 0 ? _previousComponentInput.connections.get(0) : null);
+        if(_previousComponentInput.connections.size() > 0) {
+            var prevData:DrivetrainComponentData    = _previousComponentInput.connections.get(0).pullData();
 
-        _componentData.gearRatios[_componentData.count] = getInputGearRatio();
-        _componentData.inertias[_componentData.count]   = getInputInertia();
-        _componentData.torques[_componentData.count]    = getInputTorque();
-        ++_componentData.count;
+            _componentData.gearRatio                = getInputGearRatio();
+            _componentData.combinedTorque           = prevData.combinedTorque * _componentData.gearRatio + getInputTorque();
+            _componentData.combinedEffectiveInertia = prevData.combinedEffectiveInertia * (_componentData.gearRatio * _componentData.gearRatio) + getInputInertia();
+        }
+        else {
+            _componentData.combinedTorque           = getInputTorque();
+            _componentData.combinedEffectiveInertia = getInputInertia();
+            _componentData.gearRatio                = getInputGearRatio();
+        }
 
         return _componentData;
     }
 
-    protected function pullTotalTorque(outputConnection:Connection):Number {
-        var totalTorque:Number  = getInputTorque();
-        var totalRatio:Number   = getInputGearRatio();
+    protected function pullTotalTorque():Number {
+        var prevData:DrivetrainComponentData        = _previousComponentInput.connections.size() > 0 ? _previousComponentInput.connections.get(0).pullData() : null;
+        var nextAndThisData:DrivetrainComponentData = pullNextComponentData(_nextComponentInput.connections.size() > 0 ? _nextComponentInput.connections.get(0) : null);
+        var totalTorque:Number                      = nextAndThisData.combinedTorque;
 
-        //getPreviousInputData(_componentData);
-        getInputComponentData(_componentData, _previousComponentInput.connections.size() > 0 ? _previousComponentInput.connections.get(0) : null);
-
-        for(var prev:int = _componentData.count - 1; prev >= 0; --prev) {
-            totalTorque += _componentData.torques[prev] * totalRatio;
-            totalRatio  *= _componentData.gearRatios[prev];
-        }
-
-        totalRatio = 1;
-
-        //getNextInputData(_componentData);
-        getInputComponentData(_componentData, _nextComponentInput.connections.size() > 0 ? _nextComponentInput.connections.get(0) : null);
-
-        for(var next:int = _componentData.count - 1; next >= 0; --next) {
-            totalRatio  *= _componentData.gearRatios[next];
-            totalTorque += _componentData.torques[next] / totalRatio;
-        }
+        if(prevData != null)
+            totalTorque += prevData.combinedTorque * nextAndThisData.gearRatio;
 
         return totalTorque;
     }
 
-    protected function pullEffectiveInertia(outputConnection:Connection):Number {
-        var effectiveInertia:Number = getInputInertia();
-        var totalRatio:Number       = getInputGearRatio();
+    protected function pullEffectiveInertia():Number {
+        var prevData:DrivetrainComponentData        = _previousComponentInput.connections.size() > 0 ? _previousComponentInput.connections.get(0).pullData() : null;
+        var nextAndThisData:DrivetrainComponentData = pullNextComponentData(_nextComponentInput.connections.size() > 0 ? _nextComponentInput.connections.get(0) : null);
+        var effectiveInertia:Number                 = nextAndThisData.combinedEffectiveInertia;
 
-        //getPreviousInputData(_componentData);
-        getInputComponentData(_componentData, _previousComponentInput.connections.size() > 0 ? _previousComponentInput.connections.get(0) : null);
-
-        for(var prev:int = _componentData.count - 1; prev >= 0; --prev) {
-            effectiveInertia    += _componentData.inertias[prev] * totalRatio * totalRatio;
-            totalRatio          *= _componentData.gearRatios[prev];
-        }
-
-        totalRatio = 1;
-
-        //getNextInputData(_componentData);
-        getInputComponentData(_componentData, _nextComponentInput.connections.size() > 0 ? _nextComponentInput.connections.get(0) : null);
-
-        for(var next:int = _componentData.count - 1; next >= 0; --next) {
-            totalRatio          *= _componentData.gearRatios[next];
-            effectiveInertia    += _componentData.inertias[next] / (totalRatio * totalRatio);
-        }
+        if(prevData != null)
+            effectiveInertia += prevData.combinedEffectiveInertia * (nextAndThisData.gearRatio * nextAndThisData.gearRatio);
 
         return effectiveInertia;
-    }
-
-    protected function getInputComponentData(data:DrivetrainComponentData, inputConnection:Connection):void {
-        if(inputConnection != null) {
-            var prevCompData:DrivetrainComponentData = inputConnection.pullData();
-            prevCompData.copyTo(data);
-        }
-        else {
-            data.count = 0;
-        }
     }
 }
 }
