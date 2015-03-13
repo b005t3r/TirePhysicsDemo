@@ -86,7 +86,8 @@ public class DifferentialComponent extends DrivetrainComponent {
         var torqueA:Number  = nextDataA.combinedTorque / nextDataA.gearRatio;
         var torqueB:Number  = nextDataB.combinedTorque / nextDataB.gearRatio;
 
-        _componentData.combinedTorque           = torqueA + torqueB - Math.abs(getInputExcessTorque());
+        _componentData.combinedTorque           = torqueA + torqueB;
+        _componentData.combinedTorque          += _componentData.combinedTorque > 0 ? -Math.abs(getInputExcessTorque()) : -Math.abs(getInputExcessTorque());
         _componentData.combinedEffectiveInertia = nextDataA.combinedEffectiveInertia / (nextDataA.gearRatio * nextDataA.gearRatio)
                                                 + nextDataB.combinedEffectiveInertia / (nextDataB.gearRatio * nextDataB.gearRatio)
         ;
@@ -106,7 +107,7 @@ public class DifferentialComponent extends DrivetrainComponent {
         _componentData.combinedEffectiveInertia = prevAndThisData.combinedEffectiveInertia;
 
         // one of the next components has to be added, we need to check which one
-        var nextComponentOutput:DrivetrainComponentOutput = null;
+        var nextCompOutput:DrivetrainComponentOutput = null;
 
         var count:int = _nextComponentOutput.connections.size();
         for(var i:int = 0; i < count; ++i) {
@@ -122,16 +123,16 @@ public class DifferentialComponent extends DrivetrainComponent {
             if(nextComponent == null)
                 throw new UninitializedError("two next components have to be connected to a differential");
 
-            nextComponentOutput                     = nextComponent.drivetrain_internal::_previousComponentOutput;
-            var nextData:DrivetrainComponentData    = nextComponentOutput.connections.get(0).pullData();
+            nextCompOutput                          = nextComponent.drivetrain_internal::_previousComponentOutput;
+            var nextData:DrivetrainComponentData    = nextCompOutput.connections.get(0).pullData();
 
             // don't pull torque from the other next component
             // just add excess torque
             // and share the torque pulled from prev components according to share ratio
             if(i == 0)
-                _componentData.combinedTorque = _componentData.combinedTorque * _shareRatio - getInputExcessTorque();
+                _componentData.combinedTorque = _componentData.combinedTorque * (1 - _shareRatio) - getInputExcessTorque();
             else
-                _componentData.combinedTorque = _componentData.combinedTorque * (1 - _shareRatio) + getInputExcessTorque();
+                _componentData.combinedTorque = _componentData.combinedTorque * _shareRatio + getInputExcessTorque();
 
             _componentData.combinedEffectiveInertia += nextData.combinedEffectiveInertia / (nextData.gearRatio * nextData.gearRatio);
 
