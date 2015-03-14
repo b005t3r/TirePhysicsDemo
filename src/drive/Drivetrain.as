@@ -6,7 +6,7 @@
 package drive {
 import drive.components.DifferentialComponent;
 import drive.components.DrivetrainComponent;
-import drive.components.EngineComponent;
+import drive.components.engine.EngineComponent;
 import drive.components.IDifferentialExcessTorqueStore;
 import drive.components.OpenDifferentialExcessTorqueStore;
 
@@ -76,7 +76,7 @@ public class Drivetrain {
         leftWheelTorque.value = -300;
 
         Connection.connect(leftWheelInertia.output, leftWheel.inertiaInput);
-        Connection.connect(leftWheelTorque.output, leftWheel.torqueInput);
+        //Connection.connect(leftWheelTorque.output, leftWheel.torqueInput);
 
         // right wheel
         var rightWheelInertia:ValueProvider = new ValueProvider(new NumberOutput("RightWheelInertia"));
@@ -85,7 +85,7 @@ public class Drivetrain {
         rightWheelTorque.value = -350;
 
         Connection.connect(rightWheelInertia.output, rightWheel.inertiaInput);
-        Connection.connect(rightWheelTorque.output, rightWheel.torqueInput);
+//        Connection.connect(rightWheelTorque.output, rightWheel.torqueInput);
 
         // total torque
         var engineTotalTorque:DebugConsumer = new DebugConsumer(new NumberInput("EngineTotalTorque"));

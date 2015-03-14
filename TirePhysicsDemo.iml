@@ -25,7 +25,7 @@
         </dependencies>
         <compiler-options>
           <map>
-            <entry key="compiler.debug.swf" value="true" />
+            <entry key="compiler.debug.swf" value="false" />
             <entry key="compiler.define" value="CONFIG::desktop&#9;true&#10;CONFIG::web&#9;false" />
           </map>
         </compiler-options>
