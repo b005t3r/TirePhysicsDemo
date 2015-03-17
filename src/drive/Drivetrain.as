@@ -4,11 +4,11 @@
  * Time: 9:23
  */
 package drive {
-import drive.components.DifferentialComponent;
+import drive.components.differential.DifferentialComponent;
 import drive.components.DrivetrainComponent;
 import drive.components.engine.EngineComponent;
-import drive.components.IDifferentialExcessTorqueStore;
-import drive.components.OpenDifferentialExcessTorqueStore;
+import drive.components.differential.IDifferentialExcessTorqueStore;
+import drive.components.differential.OpenDifferentialExcessTorqueStore;
 
 import plugs.Connection;
 import plugs.consumers.DebugConsumer;

@@ -3,7 +3,9 @@
  * Date: 11/03/15
  * Time: 12:42
  */
-package drive.components {
+package drive.components.differential {
+import drive.components.*;
+
 import flash.utils.getQualifiedClassName;
 
 import plugs.Connection;
@@ -92,9 +94,9 @@ public class DifferentialComponent extends DrivetrainComponent {
                                                 + nextDataB.combinedEffectiveInertia / (nextDataB.gearRatio * nextDataB.gearRatio)
         ;
 
-        _componentData.gearRatio                    = getInputGearRatio();
-        _componentData.combinedTorque              += getInputTorque();
-        _componentData.combinedEffectiveInertia    += getInputInertia();
+        _componentData.gearRatio                    = pullGearRatio();
+        _componentData.combinedTorque              += pullTorque();
+        _componentData.combinedEffectiveInertia    += pullInertia();
 
         return _componentData;
     }

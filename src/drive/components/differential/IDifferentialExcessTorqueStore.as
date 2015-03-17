@@ -3,7 +3,7 @@
  * Date: 13/03/15
  * Time: 15:39
  */
-package drive.components {
+package drive.components.differential {
 import plugs.IProcessor;
 import plugs.inputs.NumberInput;
 import plugs.outputs.NumberOutput;

@@ -17,8 +17,13 @@ public class DrivetrainComponent extends AbstractProcessor {
     protected var _gearRatioInput:NumberInput;
 
     protected var _totalTorqueOutput:NumberOutput;
-    protected var _angularAccelerationOutput:NumberOutput;
     protected var _effectiveInertiaOutput:NumberOutput;
+
+    protected var _angularVelocityInput:NumberInput;
+    protected var _angularVelocityOutput:NumberOutput;
+
+    protected var _timeStepInput:NumberInput;
+    protected var _newAngularVelocityOutput:NumberOutput;
 
     drivetrain_internal var _previousComponentInput:DrivetrainComponentInput;
     drivetrain_internal var _previousComponentOutput:DrivetrainComponentOutput;
@@ -38,24 +43,34 @@ public class DrivetrainComponent extends AbstractProcessor {
         _inertiaInput               = new NumberInput("Inertia");
         _gearRatioInput             = new NumberInput("GearRatio");
         _totalTorqueOutput          = new NumberOutput("TotalTorque");
-        _angularAccelerationOutput  = new NumberOutput("AngularAcceleration");
         _effectiveInertiaOutput     = new NumberOutput("EffectiveInertia");
+
+        addInput(_torqueInput);
+        addInput(_inertiaInput);
+        addInput(_gearRatioInput);
+        addOutput(_totalTorqueOutput);
+        addOutput(_effectiveInertiaOutput);
 
         _previousComponentInput     = new DrivetrainComponentInput("PreviousComponent");
         _previousComponentOutput    = new DrivetrainComponentOutput("PreviousComponent");
         _nextComponentInput         = new DrivetrainComponentInput("NextComponent");
         _nextComponentOutput        = new DrivetrainComponentOutput("NextComponent");
 
-        addInput(_torqueInput);
-        addInput(_inertiaInput);
-        addInput(_gearRatioInput);
-        addOutput(_totalTorqueOutput);
-        addOutput(_angularAccelerationOutput);
-        addOutput(_effectiveInertiaOutput);
         addInput(_previousComponentInput);
         addOutput(_previousComponentOutput);
         addInput(_nextComponentInput);
         addOutput(_nextComponentOutput);
+
+        _angularVelocityInput       = new NumberInput("AngularVelocity");
+        _angularVelocityOutput      = new NumberOutput("AngularVelocity");
+
+        _timeStepInput              = new NumberInput("dt");
+        _newAngularVelocityOutput   = new NumberOutput("NewAngularVelocity");
+
+        addInput(_angularVelocityInput);
+        addOutput(_angularVelocityOutput);
+        addInput(_timeStepInput);
+        addOutput(_newAngularVelocityOutput);
 
         _componentData = new DrivetrainComponentData();
     }
@@ -65,8 +80,13 @@ public class DrivetrainComponent extends AbstractProcessor {
     public function get gearRatioInput():NumberInput { return _gearRatioInput; }
 
     public function get totalTorqueOutput():NumberOutput { return _totalTorqueOutput; }
-    public function get angularAccelerationOutput():NumberOutput { return _angularAccelerationOutput; }
     public function get effectiveInertiaOutput():NumberOutput { return _effectiveInertiaOutput; }
+
+    public function get angularVelocityInput():NumberInput { return _angularVelocityInput; }
+    public function get angularVelocityOutput():NumberOutput { return _angularVelocityOutput; }
+
+    public function get timeStepInput():NumberInput { return _timeStepInput; }
+    public function get newAngularVelocityOutput():NumberOutput { return _newAngularVelocityOutput; }
 
     public function connectPreviousComponent(component:DrivetrainComponent):void {
         if(_previousComponentInput.connections.size() == _maxPreviousComponents)
@@ -173,46 +193,64 @@ public class DrivetrainComponent extends AbstractProcessor {
             return pullPreviousComponentData(outputConnection);
 
         else if(outputConnection.output == _totalTorqueOutput)
-            return pullTotalTorque();
+            return calculateTotalTorque();
         else if(outputConnection.output == _effectiveInertiaOutput)
-            return pullEffectiveInertia();
-        else
-            throw new ArgumentError("invalid connection");
+            return calculateEffectiveInertia();
+        else if(outputConnection.output == _angularVelocityOutput)
+            return pullAngularVelocity();
+        else if(outputConnection.output == _newAngularVelocityOutput)
+            return calculateNewAngularVelocity();
+
+        return super.requestPullData(outputConnection);
     }
 
-    protected function getInputGearRatio():Number {
+    protected function pullGearRatio():Number {
         return _gearRatioInput.connections.size() > 0
             ? _gearRatioInput.connections.get(0).pullData()
             : 1
         ;
     }
 
-    protected function getInputTorque():Number {
+    protected function pullTorque():Number {
         return _torqueInput.connections.size() > 0
             ? _torqueInput.connections.get(0).pullData()
             : 0
         ;
     }
 
-    protected function getInputInertia():Number {
+    protected function pullInertia():Number {
         return _inertiaInput.connections.size() > 0
             ? _inertiaInput.connections.get(0).pullData()
             : 0
         ;
     }
 
+    protected function pullAngularVelocity():Number {
+        if(_angularVelocityInput.connections.size() != 1)
+            throw new UninitializedError("there has to be exactly one output connected to angularVelocityInput");
+
+        return _angularVelocityInput.connections.get(0).pullData();
+    }
+
+    protected function pullTimeStep():Number {
+        if(_timeStepInput.connections.size() != 1)
+            throw new UninitializedError("there has to be exactly one output connected to timeStepInput");
+
+        return _timeStepInput.connections.get(0).pullData();
+    }
+
     protected function pullNextComponentData(outputConnection:Connection):DrivetrainComponentData {
         if(_nextComponentInput.connections.size() > 0) {
             var nextData:DrivetrainComponentData    = _nextComponentInput.connections.get(0).pullData();
 
-            _componentData.combinedTorque           = nextData.combinedTorque / nextData.gearRatio + getInputTorque();
-            _componentData.combinedEffectiveInertia = nextData.combinedEffectiveInertia / (nextData.gearRatio * nextData.gearRatio) + getInputInertia();
-            _componentData.gearRatio                = getInputGearRatio();
+            _componentData.combinedTorque           = nextData.combinedTorque / nextData.gearRatio + pullTorque();
+            _componentData.combinedEffectiveInertia = nextData.combinedEffectiveInertia / (nextData.gearRatio * nextData.gearRatio) + pullInertia();
+            _componentData.gearRatio                = pullGearRatio();
         }
         else {
-            _componentData.gearRatio                = getInputGearRatio();
-            _componentData.combinedTorque           = getInputTorque();
-            _componentData.combinedEffectiveInertia = getInputInertia();
+            _componentData.gearRatio                = pullGearRatio();
+            _componentData.combinedTorque           = pullTorque();
+            _componentData.combinedEffectiveInertia = pullInertia();
         }
 
         return _componentData;
@@ -222,20 +260,20 @@ public class DrivetrainComponent extends AbstractProcessor {
         if(_previousComponentInput.connections.size() > 0) {
             var prevData:DrivetrainComponentData    = _previousComponentInput.connections.get(0).pullData();
 
-            _componentData.gearRatio                = getInputGearRatio();
-            _componentData.combinedTorque           = prevData.combinedTorque * _componentData.gearRatio + getInputTorque();
-            _componentData.combinedEffectiveInertia = prevData.combinedEffectiveInertia * (_componentData.gearRatio * _componentData.gearRatio) + getInputInertia();
+            _componentData.gearRatio                = pullGearRatio();
+            _componentData.combinedTorque           = prevData.combinedTorque * _componentData.gearRatio + pullTorque();
+            _componentData.combinedEffectiveInertia = prevData.combinedEffectiveInertia * (_componentData.gearRatio * _componentData.gearRatio) + pullInertia();
         }
         else {
-            _componentData.combinedTorque           = getInputTorque();
-            _componentData.combinedEffectiveInertia = getInputInertia();
-            _componentData.gearRatio                = getInputGearRatio();
+            _componentData.combinedTorque           = pullTorque();
+            _componentData.combinedEffectiveInertia = pullInertia();
+            _componentData.gearRatio                = pullGearRatio();
         }
 
         return _componentData;
     }
 
-    protected function pullTotalTorque():Number {
+    protected function calculateTotalTorque():Number {
         var prevData:DrivetrainComponentData        = _previousComponentInput.connections.size() > 0 ? _previousComponentInput.connections.get(0).pullData() : null;
         var nextAndThisData:DrivetrainComponentData = pullNextComponentData(_nextComponentInput.connections.size() > 0 ? _nextComponentInput.connections.get(0) : null);
         var totalTorque:Number                      = nextAndThisData.combinedTorque;
@@ -246,7 +284,7 @@ public class DrivetrainComponent extends AbstractProcessor {
         return totalTorque;
     }
 
-    protected function pullEffectiveInertia():Number {
+    protected function calculateEffectiveInertia():Number {
         var prevData:DrivetrainComponentData        = _previousComponentInput.connections.size() > 0 ? _previousComponentInput.connections.get(0).pullData() : null;
         var nextAndThisData:DrivetrainComponentData = pullNextComponentData(_nextComponentInput.connections.size() > 0 ? _nextComponentInput.connections.get(0) : null);
         var effectiveInertia:Number                 = nextAndThisData.combinedEffectiveInertia;
@@ -255,6 +293,16 @@ public class DrivetrainComponent extends AbstractProcessor {
             effectiveInertia += prevData.combinedEffectiveInertia * (nextAndThisData.gearRatio * nextAndThisData.gearRatio);
 
         return effectiveInertia;
+    }
+
+    protected function calculateNewAngularVelocity():Number {
+        var vel:Number      = pullAngularVelocity();
+        var dt:Number       = pullTimeStep();
+        var torque:Number   = calculateTotalTorque();
+        var inertia:Number  = calculateEffectiveInertia();
+        var acc:Number      = torque / inertia;
+
+        return vel + acc * dt;
     }
 }
 }

@@ -5,6 +5,7 @@
  */
 package drive.components.engine {
 import drive.components.*;
+import drive.components.util.ISteppable;
 
 import plugs.Connection;
 
@@ -31,8 +32,29 @@ public class EngineComponent extends DrivetrainComponent implements ISteppable {
     }
 
     public function get rpmOutput():NumberOutput { return _rpmOutput; }
-
     public function get timeStepInput():NumberInput { return _timeStepInput; }
+
+    public function connectTorqueCurve(curve:ITorqueCurve):void {
+        if(_torqueInput.connections.size() > 0)
+            throw new Error("torque input already connected");
+
+        Connection.connect(curve.torqueOutput, _torqueInput);
+        Connection.connect(_rpmOutput, curve.rpmInput);
+    }
+
+    public function disconnectTorqueCurve():void {
+        var count:int = _torqueInput.connections.size();
+        for(var i:int = 0; i < count; ++i) {
+            var conn:Connection     = _torqueInput.connections.get(i);
+            var curve:ITorqueCurve  = conn.output.provider as ITorqueCurve;
+
+            if(curve == null)
+                continue;
+
+            conn.disconnect();
+            curve.rpmInput.connections.get(0).disconnect();
+        }
+    }
 
     override public function receivePushData(data:*, inputConnection:Connection):void {
         if(inputConnection.input == _timeStepInput)
@@ -49,8 +71,8 @@ public class EngineComponent extends DrivetrainComponent implements ISteppable {
     }
 
     private function step(dt:Number):void {
-        var torque:Number       = pullTotalTorque();
-        var inertia:Number      = pullEffectiveInertia();
+        var torque:Number       = calculateTotalTorque();
+        var inertia:Number      = calculateEffectiveInertia();
         var angularAcc:Number   = torque / inertia;
         var dAngVel:Number      = angularAcc * dt;
         _rpm                   += dAngVel * 60 / (2 * Math.PI);

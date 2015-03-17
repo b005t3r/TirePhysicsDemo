@@ -71,8 +71,7 @@ public class SettingsMainScreen extends PanelScreen {
         this.addEventListener(FeathersEventType.TRANSITION_IN_COMPLETE, transitionInCompleteHandler);
     }
 
-    private function accessorySourceFunction(item:Object):Texture
-    {
+    private function accessorySourceFunction(item:Object):Texture {
         return StandardIcons.listDrillDownAccessoryTexture;
     }
 

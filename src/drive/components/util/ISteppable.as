@@ -3,7 +3,7 @@
  * Date: 14/03/15
  * Time: 14:46
  */
-package drive.components {
+package drive.components.util {
 import plugs.IConsumer;
 import plugs.inputs.NumberInput;
 
