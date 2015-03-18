@@ -41,8 +41,10 @@ public class SteppableGears extends Gears implements ISteppable {
     public function get timeStepInput():NumberInput { return _timeStepInput; }
 
     override public function receivePushData(data:*, inputConnection:Connection):void {
-        if(inputConnection.input == _timeStepInput)
+        if(inputConnection.input == _timeStepInput) {
             step(data);
+            return;
+        }
 
         super.receivePushData(data, inputConnection);
     }

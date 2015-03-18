@@ -301,8 +301,11 @@ public class DrivetrainComponent extends AbstractProcessor {
         var torque:Number   = calculateTotalTorque();
         var inertia:Number  = calculateEffectiveInertia();
         var acc:Number      = torque / inertia;
+        var newVel:Number   = vel + acc * dt;
 
-        return vel + acc * dt;
+        // TODO: get velocity modifiers from previous and next components
+
+        return newVel;
     }
 }
 }

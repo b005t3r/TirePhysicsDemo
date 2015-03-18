@@ -4,8 +4,6 @@
  * Time: 11:09
  */
 package drive.components.util {
-import drive.components.*;
-
 import plugs.Connection;
 import plugs.inputs.NumberInput;
 import plugs.outputs.NumberOutput;
@@ -39,7 +37,7 @@ public class AngularVelocityStore extends AbstractProcessor implements ISteppabl
 
     public function get angularVelocityInput():NumberInput { return _angularVelocityInput; }
     public function get angularVelocityOutput():NumberOutput { return _angularVelocityOutput; }
-    public function get timeStepOutput():NumberOutput { return null; }
+    public function get timeStepOutput():NumberOutput { return _timeStepOutput; }
 
     public function get timeStepInput():NumberInput { return _timeStepInput; }
 
@@ -47,8 +45,10 @@ public class AngularVelocityStore extends AbstractProcessor implements ISteppabl
     public function set angularVelocity(value:Number):void { _angularVelocity = value; }
 
     override public function receivePushData(data:*, inputConnection:Connection):void {
-        if(inputConnection.input == _timeStepInput)
+        if(inputConnection.input == _timeStepInput) {
             step(data);
+            return;
+        }
 
         super.receivePushData(data, inputConnection);
     }

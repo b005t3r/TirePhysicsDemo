@@ -38,20 +38,41 @@ public class AngularVelocityForwarder extends AbstractProcessor {
 
     override public function requestPullData(outputConnection:Connection):* {
         if(outputConnection.output == _angularVelocityOutput)
-            return _divideByGearRatio ? pullAngularVelocity() / pullGearRatio() : pullAngularVelocity() * pullGearRatio();
+            return calculateTotalAngularVelocity();
 
         return super.requestPullData(outputConnection);
     }
 
-    private function pullGearRatio():Number {
-        return _gearRatioInput.connections.size() > 0
-            ? _gearRatioInput.connections.get(0).pullData()
-            : 1
-        ;
+    private function pullGearRatio(connIndex:int):Number {
+        // if no gear ratios are connected, assume all are 1
+        if(_gearRatioInput.connections.size() == 0)
+            return 1;
+
+        if(connIndex >= _gearRatioInput.connections.size())
+            throw new ArgumentError("no connection for index: " + connIndex);
+
+        return _gearRatioInput.connections.get(connIndex).pullData();
     }
 
-    private function pullAngularVelocity():Number {
-        return _angularVelocityInput.connections.get(0).pullData();
+    private function pullAngularVelocity(connIndex:int):Number {
+        if(connIndex >= _angularVelocityInput.connections.size())
+            throw new ArgumentError("no connection for index: " + connIndex);
+
+        return _angularVelocityInput.connections.get(connIndex).pullData();
+    }
+
+    private function calculateTotalAngularVelocity():Number {
+        var totalVel:Number = 0;
+
+        var count:int = _angularVelocityInput.connections.size();
+        for(var i:int = 0; i < count; ++i) {
+            totalVel += _divideByGearRatio
+                ? pullAngularVelocity(i) / pullGearRatio(i)
+                : pullAngularVelocity(i) * pullGearRatio(i)
+            ;
+        }
+
+        return totalVel;
     }
 }
 }
