@@ -6,8 +6,6 @@
 package drive.components.differential {
 import drive.components.*;
 
-import flash.utils.getQualifiedClassName;
-
 import plugs.Connection;
 import plugs.inputs.NumberInput;
 import plugs.outputs.NumberOutput;
@@ -65,11 +63,11 @@ public class DifferentialComponent extends DrivetrainComponent {
     }
 
     protected function pullExcessTorque():Number {
-        if(_nextComponentInput.connections.size() < 2)
+        if(drivetrain_internal::_nextComponentInput.connections.size() < 2)
             throw new UninitializedError("two next components have to be connected to a differential");
 
-        var nextDataA:DrivetrainComponentData   = _nextComponentInput.connections.get(0).pullData();
-        var nextDataB:DrivetrainComponentData   = _nextComponentInput.connections.get(1).pullData();
+        var nextDataA:DrivetrainComponentData   = drivetrain_internal::_nextComponentInput.connections.get(0).pullData();
+        var nextDataB:DrivetrainComponentData   = drivetrain_internal::_nextComponentInput.connections.get(1).pullData();
 
         var torqueA:Number  = nextDataA.combinedTorque / nextDataA.gearRatio;
         var torqueB:Number  = nextDataB.combinedTorque / nextDataB.gearRatio;
@@ -79,41 +77,39 @@ public class DifferentialComponent extends DrivetrainComponent {
     }
 
     override protected function pullNextComponentData(outputConnection:Connection):DrivetrainComponentData {
-        if(_nextComponentInput.connections.size() < 2)
+        if(drivetrain_internal::_nextComponentInput.connections.size() < 2)
             throw new UninitializedError("two next components have to be connected to a differential");
 
-        var nextDataA:DrivetrainComponentData   = _nextComponentInput.connections.get(0).pullData();
-        var nextDataB:DrivetrainComponentData   = _nextComponentInput.connections.get(1).pullData();
+        var nextDataA:DrivetrainComponentData   = drivetrain_internal::_nextComponentInput.connections.get(0).pullData();
+        var nextDataB:DrivetrainComponentData   = drivetrain_internal::_nextComponentInput.connections.get(1).pullData();
 
         var torqueA:Number  = nextDataA.combinedTorque / nextDataA.gearRatio;
         var torqueB:Number  = nextDataB.combinedTorque / nextDataB.gearRatio;
 
-        _componentData.combinedTorque           = torqueA + torqueB;
-        _componentData.combinedTorque          += _componentData.combinedTorque > 0 ? -Math.abs(getInputExcessTorque()) : -Math.abs(getInputExcessTorque());
-        _componentData.combinedEffectiveInertia = nextDataA.combinedEffectiveInertia / (nextDataA.gearRatio * nextDataA.gearRatio)
-                                                + nextDataB.combinedEffectiveInertia / (nextDataB.gearRatio * nextDataB.gearRatio)
-        ;
+        _nextComponentData.combinedTorque               = torqueA + torqueB;
+        _nextComponentData.combinedTorque              += _nextComponentData.combinedTorque > 0 ? -Math.abs(getInputExcessTorque()) : -Math.abs(getInputExcessTorque());
+        _nextComponentData.combinedEffectiveInertia     = nextDataA.combinedEffectiveInertia / (nextDataA.gearRatio * nextDataA.gearRatio)
+                                                        + nextDataB.combinedEffectiveInertia / (nextDataB.gearRatio * nextDataB.gearRatio);
+        _nextComponentData.combinedAngularVelocityDiff  = nextDataA.combinedAngularVelocityDiff * nextDataA.gearRatio
+                                                        + nextDataB.combinedAngularVelocityDiff * nextDataB.gearRatio;
 
-        _componentData.gearRatio                    = pullGearRatio();
-        _componentData.combinedTorque              += pullTorque();
-        _componentData.combinedEffectiveInertia    += pullInertia();
+        _nextComponentData.gearRatio                    = pullGearRatio();
+        _nextComponentData.combinedTorque              += pullTorque();
+        _nextComponentData.combinedEffectiveInertia    += pullInertia();
 
-        return _componentData;
+        return _nextComponentData;
     }
 
     override protected function pullPreviousComponentData(outputConnection:Connection):DrivetrainComponentData {
         var prevAndThisData:DrivetrainComponentData = super.pullPreviousComponentData(outputConnection);
-
-        _componentData.gearRatio                = prevAndThisData.gearRatio;
-        _componentData.combinedTorque           = prevAndThisData.combinedTorque;
-        _componentData.combinedEffectiveInertia = prevAndThisData.combinedEffectiveInertia;
+        prevAndThisData.copyTo(_prevComponentData);
 
         // one of the next components has to be added, we need to check which one
         var nextCompOutput:DrivetrainComponentOutput = null;
 
-        var count:int = _nextComponentOutput.connections.size();
+        var count:int = drivetrain_internal::_nextComponentOutput.connections.size();
         for(var i:int = 0; i < count; ++i) {
-            var conn:Connection = _nextComponentOutput.connections.get(i);
+            var conn:Connection = drivetrain_internal::_nextComponentOutput.connections.get(i);
 
             // skip the one which is asking for for data
             if(conn == outputConnection)
@@ -132,13 +128,14 @@ public class DifferentialComponent extends DrivetrainComponent {
             // just add excess torque
             // and share the torque pulled from prev components according to share ratio
             if(i == 0)
-                _componentData.combinedTorque = _componentData.combinedTorque * (1 - _shareRatio) - getInputExcessTorque();
+                _prevComponentData.combinedTorque = _prevComponentData.combinedTorque * (1 - _shareRatio) - getInputExcessTorque();
             else
-                _componentData.combinedTorque = _componentData.combinedTorque * _shareRatio + getInputExcessTorque();
+                _prevComponentData.combinedTorque = _prevComponentData.combinedTorque * _shareRatio + getInputExcessTorque();
 
-            _componentData.combinedEffectiveInertia += nextData.combinedEffectiveInertia / (nextData.gearRatio * nextData.gearRatio);
+            _prevComponentData.combinedEffectiveInertia    += nextData.combinedEffectiveInertia / (nextData.gearRatio * nextData.gearRatio);
+            _prevComponentData.combinedAngularVelocityDiff += nextData.combinedAngularVelocityDiff * nextData.gearRatio;
 
-            return _componentData;
+            return _prevComponentData;
         }
 
         throw new Error("no output connections, so who's requesting it then?");

@@ -28,13 +28,14 @@ public class DrivetrainComponent extends AbstractProcessor {
     drivetrain_internal var _previousComponentInput:DrivetrainComponentInput;
     drivetrain_internal var _previousComponentOutput:DrivetrainComponentOutput;
 
-    protected var _nextComponentInput:DrivetrainComponentInput;
-    protected var _nextComponentOutput:DrivetrainComponentOutput;
+    drivetrain_internal var _nextComponentInput:DrivetrainComponentInput;
+    drivetrain_internal var _nextComponentOutput:DrivetrainComponentOutput;
 
     protected var _maxPreviousComponents:int    = 1;
     protected var _maxNextComponents:int        = 1;
 
-    protected var _componentData:DrivetrainComponentData;
+    protected var _prevComponentData:DrivetrainComponentData;
+    protected var _nextComponentData:DrivetrainComponentData;
 
     public function DrivetrainComponent(name:String = null) {
         super(name);
@@ -72,7 +73,8 @@ public class DrivetrainComponent extends AbstractProcessor {
         addInput(_timeStepInput);
         addOutput(_newAngularVelocityOutput);
 
-        _componentData = new DrivetrainComponentData();
+        _prevComponentData = new DrivetrainComponentData();
+        _nextComponentData = new DrivetrainComponentData();
     }
 
     public function get torqueInput():NumberInput { return _torqueInput; }
@@ -241,36 +243,51 @@ public class DrivetrainComponent extends AbstractProcessor {
 
     protected function pullNextComponentData(outputConnection:Connection):DrivetrainComponentData {
         if(_nextComponentInput.connections.size() > 0) {
-            var nextData:DrivetrainComponentData    = _nextComponentInput.connections.get(0).pullData();
+            // TODO: cache nextData
+            var nextData:DrivetrainComponentData            = _nextComponentInput.connections.get(0).pullData();
 
-            _componentData.combinedTorque           = nextData.combinedTorque / nextData.gearRatio + pullTorque();
-            _componentData.combinedEffectiveInertia = nextData.combinedEffectiveInertia / (nextData.gearRatio * nextData.gearRatio) + pullInertia();
-            _componentData.gearRatio                = pullGearRatio();
+            _nextComponentData.combinedTorque               = nextData.combinedTorque / nextData.gearRatio;
+            _nextComponentData.combinedEffectiveInertia     = nextData.combinedEffectiveInertia / (nextData.gearRatio * nextData.gearRatio);
+            _nextComponentData.combinedAngularVelocityDiff  = nextData.combinedAngularVelocityDiff * nextData.gearRatio;
         }
         else {
-            _componentData.gearRatio                = pullGearRatio();
-            _componentData.combinedTorque           = pullTorque();
-            _componentData.combinedEffectiveInertia = pullInertia();
+            _nextComponentData.gearRatio                    = 1;
+            _nextComponentData.combinedTorque               = 0;
+            _nextComponentData.combinedEffectiveInertia     = 0;
+            _nextComponentData.combinedAngularVelocityDiff  = 0;
         }
 
-        return _componentData;
+        _nextComponentData.gearRatio                    = pullGearRatio();
+        _nextComponentData.combinedTorque              += pullTorque();
+        _nextComponentData.combinedEffectiveInertia    += pullInertia();
+        _nextComponentData.combinedAngularVelocityDiff += calculateNextAngularVelocityDiff();
+
+        return _nextComponentData;
     }
 
     protected function pullPreviousComponentData(outputConnection:Connection):DrivetrainComponentData {
         if(_previousComponentInput.connections.size() > 0) {
-            var prevData:DrivetrainComponentData    = _previousComponentInput.connections.get(0).pullData();
+            // TODO: cache prevData
+            var prevData:DrivetrainComponentData            = _previousComponentInput.connections.get(0).pullData();
+            var gearRatio:Number                            = pullGearRatio();
 
-            _componentData.gearRatio                = pullGearRatio();
-            _componentData.combinedTorque           = prevData.combinedTorque * _componentData.gearRatio + pullTorque();
-            _componentData.combinedEffectiveInertia = prevData.combinedEffectiveInertia * (_componentData.gearRatio * _componentData.gearRatio) + pullInertia();
+            _prevComponentData.combinedTorque               = prevData.combinedTorque * gearRatio;
+            _prevComponentData.combinedEffectiveInertia     = prevData.combinedEffectiveInertia * (gearRatio * gearRatio);
+            _prevComponentData.combinedAngularVelocityDiff  = prevData.combinedAngularVelocityDiff / gearRatio;
         }
         else {
-            _componentData.combinedTorque           = pullTorque();
-            _componentData.combinedEffectiveInertia = pullInertia();
-            _componentData.gearRatio                = pullGearRatio();
+            _prevComponentData.gearRatio                    = 1;
+            _prevComponentData.combinedTorque               = 0;
+            _prevComponentData.combinedEffectiveInertia     = 0;
+            _prevComponentData.combinedAngularVelocityDiff  = 0;
         }
 
-        return _componentData;
+        _prevComponentData.gearRatio                    = pullGearRatio();
+        _prevComponentData.combinedTorque              += pullTorque();
+        _prevComponentData.combinedEffectiveInertia    += pullInertia();
+        _prevComponentData.combinedAngularVelocityDiff += calculatePreviousAngularVelocityDiff();
+
+        return _prevComponentData;
     }
 
     protected function calculateTotalTorque():Number {
@@ -306,6 +323,14 @@ public class DrivetrainComponent extends AbstractProcessor {
         // TODO: get velocity modifiers from previous and next components
 
         return newVel;
+    }
+
+    protected function calculatePreviousAngularVelocityDiff():Number {
+        return 0; // by default components don't create any angular velocity modifiers
+    }
+
+    protected function calculateNextAngularVelocityDiff():Number {
+        return 0; // by default components don't create any angular velocity modifiers
     }
 }
 }
