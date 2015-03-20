@@ -4,11 +4,12 @@
  * Time: 9:23
  */
 package drive {
-import drive.components.differential.DifferentialComponent;
 import drive.components.DrivetrainComponent;
-import drive.components.engine.EngineComponent;
+import drive.components.clutch.ClutchComponent;
+import drive.components.differential.DifferentialComponent;
 import drive.components.differential.IDifferentialExcessTorqueStore;
 import drive.components.differential.OpenDifferentialExcessTorqueStore;
+import drive.components.engine.EngineComponent;
 import drive.components.util.AngularVelocityForwarder;
 import drive.components.util.AngularVelocityStore;
 import drive.components.util.TimeStepper;
@@ -18,25 +19,151 @@ import flash.utils.getTimer;
 import plugs.Connection;
 import plugs.consumers.DebugConsumer;
 import plugs.inputs.NumberInput;
-
 import plugs.outputs.NumberOutput;
-
 import plugs.providers.ValueProvider;
 
 public class Drivetrain {
     public function Drivetrain() {
-        var timeStepper:TimeStepper                             = new TimeStepper("TimeStepper");
-        var engine:EngineComponent                              = new EngineComponent("Engine");
-        var engineVelStore:AngularVelocityStore                 = new AngularVelocityStore("EngineAngularVelocityStore");
-        var gearbox:DrivetrainComponent                         = new DrivetrainComponent("Gearbox");
-        var gearboxVelForwarder:AngularVelocityForwarder        = new AngularVelocityForwarder("GearboxAngularVelocityForwarder");
-        var differential:DifferentialComponent                  = new DifferentialComponent(0.5, "Differential");
-        var differentialVelForwarder:AngularVelocityForwarder   = new AngularVelocityForwarder("DifferentialAngularVelocityForwarder");
-        var torqueStore:IDifferentialExcessTorqueStore          = new OpenDifferentialExcessTorqueStore("OpenDiffStore");
-        var leftWheel:DrivetrainComponent                       = new DrivetrainComponent("LeftWheel");
-        var leftWheelVelStore:AngularVelocityStore              = new AngularVelocityStore("LeftWheelAngularVelocityStore");
-        var rightWheel:DrivetrainComponent                      = new DrivetrainComponent("RightWheel");
-        var rightWheelVelStore:AngularVelocityStore             = new AngularVelocityStore("RightWheelAngularVelocityStore");
+        //RWDDrivetrainTest();
+        ClutchTest();
+    }
+
+    private function ClutchTest():void {
+        var timeStepper:TimeStepper = new TimeStepper("TimeStepper");
+        var engine:EngineComponent = new EngineComponent("Engine");
+        var engineVelStore:AngularVelocityStore = new AngularVelocityStore("EngineAngularVelocityStore");
+        var clutch:ClutchComponent = new ClutchComponent("Clutch");
+        var clutchVelForwarder:AngularVelocityForwarder = new AngularVelocityForwarder("ClutchAngularVelocityForwarder");
+        var wheel:DrivetrainComponent = new DrivetrainComponent("LeftWheel");
+        var wheelVelStore:AngularVelocityStore = new AngularVelocityStore("LeftWheelAngularVelocityStore");
+
+        engine.connectNextComponent(clutch);
+        clutch.connectNextComponent(wheel);
+
+        // engine
+        var engineTorque:ValueProvider = new ValueProvider(new NumberOutput("EngineTorque"));
+        engineTorque.value = 100;
+        var engineInertia:ValueProvider = new ValueProvider(new NumberOutput("EngineInertia"));
+        engineInertia.value = 0.2;
+        //engineInertia.value = 2;
+
+        Connection.connect(engineTorque.output, engine.torqueInput);
+        Connection.connect(engineInertia.output, engine.inertiaInput);
+
+        Connection.connect(engine.newAngularVelocityOutput, engineVelStore.angularVelocityInput);
+        Connection.connect(engineVelStore.angularVelocityOutput, engine.angularVelocityInput);
+        Connection.connect(engineVelStore.stepDurationOutput, engine.stepDurationInput);
+
+        // clutch
+        var clutchRatio:ValueProvider = new ValueProvider(new NumberOutput("ClutchRatio"));
+        clutchRatio.value = 0.0;
+
+        Connection.connect(clutchRatio.output, clutch.clutchRatioInput);
+
+        Connection.connect(clutchVelForwarder.angularVelocityOutput, clutch.angularVelocityInput);
+
+        Connection.connect(engine.angularVelocityOutput, clutch.previousAngularVelocityInput);
+        Connection.connect(wheel.angularVelocityOutput, clutch.nextAngularVelocityInput);
+
+        // left wheel
+        var wheelInertia:ValueProvider = new ValueProvider(new NumberOutput("WheelInertia"));
+        wheelInertia.value = 10;
+        var wheelTorque:ValueProvider = new ValueProvider(new NumberOutput("WheelTorque"));
+        wheelTorque.value = -50;
+        var wheelRatio:ValueProvider = new ValueProvider(new NumberOutput("WheelGearRatio"));
+        wheelRatio.value = 4;
+
+        Connection.connect(wheelInertia.output, wheel.inertiaInput);
+        Connection.connect(wheelTorque.output, wheel.torqueInput);
+        Connection.connect(wheelRatio.output, wheel.gearRatioInput);
+
+        Connection.connect(wheel.newAngularVelocityOutput, wheelVelStore.angularVelocityInput);
+        Connection.connect(wheelVelStore.angularVelocityOutput, wheel.angularVelocityInput);
+
+        Connection.connect(wheel.angularVelocityOutput, clutchVelForwarder.angularVelocityInput);
+        Connection.connect(wheelVelStore.stepDurationOutput, wheel.stepDurationInput);
+
+        // time step - order is important, clutch first, then all the rest
+        Connection.connect(timeStepper.timeStepOutput, clutch.timeStepInput);
+        Connection.connect(timeStepper.timeStepOutput, engineVelStore.timeStepInput);
+        Connection.connect(timeStepper.timeStepOutput, wheelVelStore.timeStepInput);
+
+        // total torque
+        var engineTotalTorque:DebugConsumer = new DebugConsumer(new NumberInput("EngineTotalTorque"));
+        Connection.connect(engine.totalTorqueOutput, engineTotalTorque.input);
+
+        var clutchTotalTorque:DebugConsumer = new DebugConsumer(new NumberInput("ClutchTotalTorque"));
+        Connection.connect(clutch.totalTorqueOutput, clutchTotalTorque.input);
+
+        var wheelTotalTorque:DebugConsumer = new DebugConsumer(new NumberInput("WheelTotalTorque"));
+        Connection.connect(wheel.totalTorqueOutput, wheelTotalTorque.input);
+
+        // effective inertia
+        var engineEffectiveInertia:DebugConsumer = new DebugConsumer(new NumberInput("EngineEffectiveInertia"));
+        Connection.connect(engine.effectiveInertiaOutput, engineEffectiveInertia.input);
+
+        var clutchEffectiveInertia:DebugConsumer = new DebugConsumer(new NumberInput("ClutchEffectiveInertia"));
+        Connection.connect(clutch.effectiveInertiaOutput, clutchEffectiveInertia.input);
+
+        var wheelEffectiveInertia:DebugConsumer = new DebugConsumer(new NumberInput("WheelEffectiveInertia"));
+        Connection.connect(wheel.effectiveInertiaOutput, wheelEffectiveInertia.input);
+
+        // angular velocity
+        var engineAngularVelocity:DebugConsumer = new DebugConsumer(new NumberInput("EngineAngularVelocity"));
+        Connection.connect(engine.angularVelocityOutput, engineAngularVelocity.input);
+
+        var clutchAngularVelocity:DebugConsumer = new DebugConsumer(new NumberInput("ClutchAngularVelocity"));
+        Connection.connect(clutch.angularVelocityOutput, clutchAngularVelocity.input);
+
+        var wheelAngularVelocity:DebugConsumer = new DebugConsumer(new NumberInput("WheelAngularVelocity"));
+        Connection.connect(wheel.angularVelocityOutput, wheelAngularVelocity.input);
+
+        // clutch ratio
+        var clutchRatioConsumer:DebugConsumer = new DebugConsumer(new NumberInput("ClutchRatio"));
+        Connection.connect(clutchRatio.output, clutchRatioConsumer.input);
+
+        //var time:int = getTimer();
+        const stepCount:int = 11;
+        for(var i:int = 0; i < stepCount; ++i) {
+            clutchRatio.value = Number(i) / (stepCount - 1);
+
+            timeStepper.pushTimeStep(0.1);
+
+            trace("Clutch[" + i + "]:");
+            clutchRatioConsumer.pullData();
+
+            trace("Inertia[" + i + "]:");
+            engineEffectiveInertia.pullData();
+            clutchEffectiveInertia.pullData();
+            wheelEffectiveInertia.pullData();
+
+            trace("Torque[" + i + "]:");
+            engineTotalTorque.pullData();
+            clutchTotalTorque.pullData();
+            wheelTotalTorque.pullData();
+
+            trace("Velocity[" + i + "]:");
+            engineAngularVelocity.pullData();
+            clutchAngularVelocity.pullData();
+            wheelAngularVelocity.pullData();
+        }
+
+        //trace("elapsed: " + (getTimer() - time));
+    }
+
+    private function RWDDrivetrainTest():void {
+        var timeStepper:TimeStepper = new TimeStepper("TimeStepper");
+        var engine:EngineComponent = new EngineComponent("Engine");
+        var engineVelStore:AngularVelocityStore = new AngularVelocityStore("EngineAngularVelocityStore");
+        var gearbox:DrivetrainComponent = new DrivetrainComponent("Gearbox");
+        var gearboxVelForwarder:AngularVelocityForwarder = new AngularVelocityForwarder("GearboxAngularVelocityForwarder");
+        var differential:DifferentialComponent = new DifferentialComponent(0.5, "Differential");
+        var differentialVelForwarder:AngularVelocityForwarder = new AngularVelocityForwarder("DifferentialAngularVelocityForwarder");
+        var torqueStore:IDifferentialExcessTorqueStore = new OpenDifferentialExcessTorqueStore("OpenDiffStore");
+        var leftWheel:DrivetrainComponent = new DrivetrainComponent("LeftWheel");
+        var leftWheelVelStore:AngularVelocityStore = new AngularVelocityStore("LeftWheelAngularVelocityStore");
+        var rightWheel:DrivetrainComponent = new DrivetrainComponent("RightWheel");
+        var rightWheelVelStore:AngularVelocityStore = new AngularVelocityStore("RightWheelAngularVelocityStore");
 
         engine.connectNextComponent(gearbox);
         gearbox.connectNextComponent(differential);
@@ -56,7 +183,7 @@ public class Drivetrain {
 
         Connection.connect(engine.newAngularVelocityOutput, engineVelStore.angularVelocityInput);
         Connection.connect(engineVelStore.angularVelocityOutput, engine.angularVelocityInput);
-        Connection.connect(engineVelStore.timeStepOutput, engine.timeStepInput);
+        Connection.connect(engineVelStore.stepDurationOutput, engine.stepDurationInput);
 
         Connection.connect(timeStepper.timeStepOutput, engineVelStore.timeStepInput);
 
@@ -106,7 +233,7 @@ public class Drivetrain {
         Connection.connect(leftWheelVelStore.angularVelocityOutput, leftWheel.angularVelocityInput);
 
         Connection.connect(leftWheel.angularVelocityOutput, differentialVelForwarder.angularVelocityInput);
-        Connection.connect(leftWheelVelStore.timeStepOutput, leftWheel.timeStepInput);
+        Connection.connect(leftWheelVelStore.stepDurationOutput, leftWheel.stepDurationInput);
 
         Connection.connect(timeStepper.timeStepOutput, leftWheelVelStore.timeStepInput);
 
@@ -123,7 +250,7 @@ public class Drivetrain {
         Connection.connect(rightWheelVelStore.angularVelocityOutput, rightWheel.angularVelocityInput);
 
         Connection.connect(rightWheel.angularVelocityOutput, differentialVelForwarder.angularVelocityInput);
-        Connection.connect(rightWheelVelStore.timeStepOutput, rightWheel.timeStepInput);
+        Connection.connect(rightWheelVelStore.stepDurationOutput, rightWheel.stepDurationInput);
 
         Connection.connect(timeStepper.timeStepOutput, rightWheelVelStore.timeStepInput);
 
@@ -142,7 +269,7 @@ public class Drivetrain {
 
         var leftWheelTotalTorque:DebugConsumer = new DebugConsumer(new NumberInput("LeftWheelTotalTorque"));
         Connection.connect(leftWheel.totalTorqueOutput, leftWheelTotalTorque.input);
-        
+
         var rightWheelTotalTorque:DebugConsumer = new DebugConsumer(new NumberInput("RightWheelTotalTorque"));
         Connection.connect(rightWheel.totalTorqueOutput, rightWheelTotalTorque.input);
 
@@ -191,25 +318,23 @@ public class Drivetrain {
 
         trace("elapsed: " + (getTimer() - time));
 
-            trace("Torque[" + i + "]:");
-            engineTotalTorque.pullData();
-            gearboxTotalTorque.pullData();
-            diffTotalTorque.pullData();
-            diffExcessTorque.pullData();
-            leftWheelTotalTorque.pullData();
-            rightWheelTotalTorque.pullData();
+        trace("Torque[" + i + "]:");
+        engineTotalTorque.pullData();
+        gearboxTotalTorque.pullData();
+        diffTotalTorque.pullData();
+        diffExcessTorque.pullData();
+        leftWheelTotalTorque.pullData();
+        rightWheelTotalTorque.pullData();
 
-            torqueStore.pullTorque();
-            trace("Pulled " + torqueStore.torque + " [Nm] of excess torque");
+        torqueStore.pullTorque();
+        trace("Pulled " + torqueStore.torque + " [Nm] of excess torque");
 
-            trace("Velocity[" + i + "]:");
-            engineAngularVelocity.pullData();
-            gearboxAngularVelocity.pullData();
-            diffAngularVelocity.pullData();
-            leftWheelAngularVelocity.pullData();
-            rightWheelAngularVelocity.pullData();
-
-
+        trace("Velocity[" + i + "]:");
+        engineAngularVelocity.pullData();
+        gearboxAngularVelocity.pullData();
+        diffAngularVelocity.pullData();
+        leftWheelAngularVelocity.pullData();
+        rightWheelAngularVelocity.pullData();
     }
 }
 }

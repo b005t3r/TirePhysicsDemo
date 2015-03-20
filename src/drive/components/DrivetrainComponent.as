@@ -22,7 +22,7 @@ public class DrivetrainComponent extends AbstractProcessor {
     protected var _angularVelocityInput:NumberInput;
     protected var _angularVelocityOutput:NumberOutput;
 
-    protected var _timeStepInput:NumberInput;
+    protected var _stepDurationInput:NumberInput;
     protected var _newAngularVelocityOutput:NumberOutput;
 
     drivetrain_internal var _previousComponentInput:DrivetrainComponentInput;
@@ -65,12 +65,12 @@ public class DrivetrainComponent extends AbstractProcessor {
         _angularVelocityInput       = new NumberInput("AngularVelocity");
         _angularVelocityOutput      = new NumberOutput("AngularVelocity");
 
-        _timeStepInput              = new NumberInput("dt");
+        _stepDurationInput          = new NumberInput("StepDuration");
         _newAngularVelocityOutput   = new NumberOutput("NewAngularVelocity");
 
         addInput(_angularVelocityInput);
         addOutput(_angularVelocityOutput);
-        addInput(_timeStepInput);
+        addInput(_stepDurationInput);
         addOutput(_newAngularVelocityOutput);
 
         _prevComponentData = new DrivetrainComponentData();
@@ -87,7 +87,7 @@ public class DrivetrainComponent extends AbstractProcessor {
     public function get angularVelocityInput():NumberInput { return _angularVelocityInput; }
     public function get angularVelocityOutput():NumberOutput { return _angularVelocityOutput; }
 
-    public function get timeStepInput():NumberInput { return _timeStepInput; }
+    public function get stepDurationInput():NumberInput { return _stepDurationInput; }
     public function get newAngularVelocityOutput():NumberOutput { return _newAngularVelocityOutput; }
 
     public function connectPreviousComponent(component:DrivetrainComponent):void {
@@ -234,11 +234,11 @@ public class DrivetrainComponent extends AbstractProcessor {
         return _angularVelocityInput.connections.get(0).pullData();
     }
 
-    protected function pullTimeStep():Number {
-        if(_timeStepInput.connections.size() != 1)
+    protected function pullStepDuration():Number {
+        if(_stepDurationInput.connections.size() != 1)
             throw new UninitializedError("there has to be exactly one output connected to timeStepInput");
 
-        return _timeStepInput.connections.get(0).pullData();
+        return _stepDurationInput.connections.get(0).pullData();
     }
 
     protected function pullNextComponentData(outputConnection:Connection):DrivetrainComponentData {
@@ -313,14 +313,19 @@ public class DrivetrainComponent extends AbstractProcessor {
     }
 
     protected function calculateNewAngularVelocity():Number {
-        var vel:Number      = pullAngularVelocity();
-        var dt:Number       = pullTimeStep();
-        var torque:Number   = calculateTotalTorque();
-        var inertia:Number  = calculateEffectiveInertia();
-        var acc:Number      = torque / inertia;
-        var newVel:Number   = vel + acc * dt;
+        var vel:Number                              = pullAngularVelocity();
+        var dt:Number                               = pullStepDuration();
+        var torque:Number                           = calculateTotalTorque();
+        var inertia:Number                          = calculateEffectiveInertia();
+        var acc:Number                              = torque / inertia;
+        var newVel:Number                           = vel + acc * dt;
+        var prevData:DrivetrainComponentData        = _previousComponentInput.connections.size() > 0 ? _previousComponentInput.connections.get(0).pullData() : null;
+        var nextAndThisData:DrivetrainComponentData = pullNextComponentData(_nextComponentInput.connections.size() > 0 ? _nextComponentInput.connections.get(0) : null);
 
-        // TODO: get velocity modifiers from previous and next components
+        if(prevData != null)
+            newVel += prevData.combinedAngularVelocityDiff / nextAndThisData.gearRatio;
+
+        newVel += nextAndThisData.combinedAngularVelocityDiff;
 
         return newVel;
     }
