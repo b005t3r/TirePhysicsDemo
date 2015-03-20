@@ -123,9 +123,59 @@ public class Drivetrain {
         Connection.connect(clutchRatio.output, clutchRatioConsumer.input);
 
         //var time:int = getTimer();
-        const stepCount:int = 11;
-        for(var i:int = 0; i < stepCount; ++i) {
-            clutchRatio.value = Number(i) / (stepCount - 1);
+        const stepCount:int = 15;
+        for(var i:int = 0, c:Number = 0.0; i < stepCount; ++i, c = Math.abs(c - 1) > 0.1 ? c + 0.1 : 1) {
+            clutchRatio.value = c;
+
+            timeStepper.pushTimeStep(0.1);
+
+            trace("Clutch[" + i + "]:");
+            clutchRatioConsumer.pullData();
+
+            trace("Inertia[" + i + "]:");
+            engineEffectiveInertia.pullData();
+            clutchEffectiveInertia.pullData();
+            wheelEffectiveInertia.pullData();
+
+            trace("Torque[" + i + "]:");
+            engineTotalTorque.pullData();
+            clutchTotalTorque.pullData();
+            wheelTotalTorque.pullData();
+
+            trace("Velocity[" + i + "]:");
+            engineAngularVelocity.pullData();
+            clutchAngularVelocity.pullData();
+            wheelAngularVelocity.pullData();
+        }
+
+        c = 0;
+
+        for(i = 0; i < stepCount + stepCount / 2; ++i) {
+            clutchRatio.value = c;
+
+            timeStepper.pushTimeStep(0.1);
+
+            trace("Clutch[" + i + "]:");
+            clutchRatioConsumer.pullData();
+
+            trace("Inertia[" + i + "]:");
+            engineEffectiveInertia.pullData();
+            clutchEffectiveInertia.pullData();
+            wheelEffectiveInertia.pullData();
+
+            trace("Torque[" + i + "]:");
+            engineTotalTorque.pullData();
+            clutchTotalTorque.pullData();
+            wheelTotalTorque.pullData();
+
+            trace("Velocity[" + i + "]:");
+            engineAngularVelocity.pullData();
+            clutchAngularVelocity.pullData();
+            wheelAngularVelocity.pullData();
+        }
+
+        for(i = 0; i < stepCount + stepCount; ++i, c = Math.abs(c - 1) > 0.1 ? c + 0.1 : 1) {
+            clutchRatio.value = c;
 
             timeStepper.pushTimeStep(0.1);
 
