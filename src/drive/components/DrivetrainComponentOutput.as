@@ -4,8 +4,6 @@
  * Time: 9:38
  */
 package drive.components {
-import drive.*;
-
 import plugs.IInput;
 import plugs.outputs.AbstractOutput;
 

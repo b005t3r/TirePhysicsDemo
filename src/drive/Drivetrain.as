@@ -10,9 +10,9 @@ import drive.components.differential.DifferentialComponent;
 import drive.components.differential.IDifferentialExcessTorqueStore;
 import drive.components.differential.OpenDifferentialExcessTorqueStore;
 import drive.components.engine.EngineComponent;
-import drive.components.util.AngularVelocityForwarder;
-import drive.components.util.AngularVelocityStore;
+import drive.components.util.SteppableValueStore;
 import drive.components.util.TimeStepper;
+import drive.components.util.ValueForwarder;
 
 import flash.utils.getTimer;
 
@@ -29,13 +29,13 @@ public class Drivetrain {
     }
 
     private function ClutchTest():void {
-        var timeStepper:TimeStepper = new TimeStepper("TimeStepper");
-        var engine:EngineComponent = new EngineComponent("Engine");
-        var engineVelStore:AngularVelocityStore = new AngularVelocityStore("EngineAngularVelocityStore");
-        var clutch:ClutchComponent = new ClutchComponent("Clutch");
-        var clutchVelForwarder:AngularVelocityForwarder = new AngularVelocityForwarder("ClutchAngularVelocityForwarder");
-        var wheel:DrivetrainComponent = new DrivetrainComponent("LeftWheel");
-        var wheelVelStore:AngularVelocityStore = new AngularVelocityStore("LeftWheelAngularVelocityStore");
+        var timeStepper:TimeStepper             = new TimeStepper("TimeStepper");
+        var engine:EngineComponent              = new EngineComponent("Engine");
+        var engineVelStore:SteppableValueStore  = new SteppableValueStore("EngineAngularVelocityStore");
+        var clutch:ClutchComponent              = new ClutchComponent("Clutch");
+        var clutchVelForwarder:ValueForwarder   = new ValueForwarder("ClutchAngularVelocityForwarder");
+        var wheel:DrivetrainComponent           = new DrivetrainComponent("LeftWheel");
+        var wheelVelStore:SteppableValueStore   = new SteppableValueStore("LeftWheelAngularVelocityStore");
 
         engine.connectNextComponent(clutch);
         clutch.connectNextComponent(wheel);
@@ -84,9 +84,10 @@ public class Drivetrain {
         Connection.connect(wheelVelStore.stepDurationOutput, wheel.stepDurationInput);
 
         // time step - order is important, clutch first, then all the rest
-        Connection.connect(timeStepper.timeStepOutput, clutch.timeStepInput);
-        Connection.connect(timeStepper.timeStepOutput, engineVelStore.timeStepInput);
-        Connection.connect(timeStepper.timeStepOutput, wheelVelStore.timeStepInput);
+        Connection.connect(timeStepper.timeStepOutput, clutch.timeStepInput);           // 1. Update clutch torque and inertia transfer.
+        Connection.connect(timeStepper.timeStepOutput, wheelVelStore.timeStepInput);    // 2. Update wheel's ang. velocity.
+                                                                                        // 3. Update differential's torque store.
+        Connection.connect(timeStepper.timeStepOutput, engineVelStore.timeStepInput);   // 4. Update engine's ang. velocity.
 
         // total torque
         var engineTotalTorque:DebugConsumer = new DebugConsumer(new NumberInput("EngineTotalTorque"));
@@ -204,16 +205,16 @@ public class Drivetrain {
     private function RWDDrivetrainTest():void {
         var timeStepper:TimeStepper = new TimeStepper("TimeStepper");
         var engine:EngineComponent = new EngineComponent("Engine");
-        var engineVelStore:AngularVelocityStore = new AngularVelocityStore("EngineAngularVelocityStore");
+        var engineVelStore:SteppableValueStore = new SteppableValueStore("EngineAngularVelocityStore");
         var gearbox:DrivetrainComponent = new DrivetrainComponent("Gearbox");
-        var gearboxVelForwarder:AngularVelocityForwarder = new AngularVelocityForwarder("GearboxAngularVelocityForwarder");
+        var gearboxVelForwarder:ValueForwarder = new ValueForwarder("GearboxAngularVelocityForwarder");
         var differential:DifferentialComponent = new DifferentialComponent(0.5, "Differential");
-        var differentialVelForwarder:AngularVelocityForwarder = new AngularVelocityForwarder("DifferentialAngularVelocityForwarder");
+        var differentialVelForwarder:ValueForwarder = new ValueForwarder("DifferentialAngularVelocityForwarder");
         var torqueStore:IDifferentialExcessTorqueStore = new OpenDifferentialExcessTorqueStore("OpenDiffStore");
         var leftWheel:DrivetrainComponent = new DrivetrainComponent("LeftWheel");
-        var leftWheelVelStore:AngularVelocityStore = new AngularVelocityStore("LeftWheelAngularVelocityStore");
+        var leftWheelVelStore:SteppableValueStore = new SteppableValueStore("LeftWheelAngularVelocityStore");
         var rightWheel:DrivetrainComponent = new DrivetrainComponent("RightWheel");
-        var rightWheelVelStore:AngularVelocityStore = new AngularVelocityStore("RightWheelAngularVelocityStore");
+        var rightWheelVelStore:SteppableValueStore = new SteppableValueStore("RightWheelAngularVelocityStore");
 
         engine.connectNextComponent(gearbox);
         gearbox.connectNextComponent(differential);

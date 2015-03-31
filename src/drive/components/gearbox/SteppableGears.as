@@ -7,7 +7,6 @@ package drive.components.gearbox {
 import drive.components.util.ISteppable;
 
 import plugs.Connection;
-
 import plugs.inputs.NumberInput;
 
 public class SteppableGears extends Gears implements ISteppable {

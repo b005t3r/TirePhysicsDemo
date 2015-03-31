@@ -9,7 +9,7 @@ import plugs.inputs.NumberInput;
 import plugs.outputs.NumberOutput;
 import plugs.processors.AbstractProcessor;
 
-public class AngularVelocityForwarder extends AbstractProcessor {
+public class ValueForwarder extends AbstractProcessor {
     private var _angularVelocityInput:NumberInput;
     private var _gearRatioInput:NumberInput;
 
@@ -17,7 +17,7 @@ public class AngularVelocityForwarder extends AbstractProcessor {
 
     private var _divideByGearRatio:Boolean;
 
-    public function AngularVelocityForwarder(name:String = null) {
+    public function ValueForwarder(name:String = null) {
         super(name);
 
         _angularVelocityInput   = new NumberInput("AngularVelocity");

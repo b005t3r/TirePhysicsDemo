@@ -12,7 +12,6 @@ import drive.components.util.ISteppable;
 import flash.errors.IllegalOperationError;
 
 import plugs.Connection;
-
 import plugs.inputs.NumberInput;
 
 use namespace drivetrain_internal;

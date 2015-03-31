@@ -4,8 +4,6 @@
  * Time: 16:05
  */
 package drive.components.differential {
-import drive.components.differential.IDifferentialExcessTorqueStore;
-
 import plugs.Connection;
 import plugs.inputs.NumberInput;
 import plugs.outputs.NumberOutput;

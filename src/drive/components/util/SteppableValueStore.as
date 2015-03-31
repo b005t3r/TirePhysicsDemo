@@ -9,7 +9,7 @@ import plugs.inputs.NumberInput;
 import plugs.outputs.NumberOutput;
 import plugs.processors.AbstractProcessor;
 
-public class AngularVelocityStore extends AbstractProcessor implements ISteppable {
+public class SteppableValueStore extends AbstractProcessor implements ISteppable {
     protected var _angularVelocityInput:NumberInput;
     protected var _angularVelocityOutput:NumberOutput;
     protected var _stepDurationOutput:NumberOutput;
@@ -19,7 +19,7 @@ public class AngularVelocityStore extends AbstractProcessor implements ISteppabl
     private var _dt:Number;
     private var _angularVelocity:Number = 0;
 
-    public function AngularVelocityStore(name:String = null) {
+    public function SteppableValueStore(name:String = null) {
         super(name);
 
         _angularVelocityInput   = new NumberInput("AngularVelocity");
