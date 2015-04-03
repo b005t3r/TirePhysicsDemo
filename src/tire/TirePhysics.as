@@ -94,7 +94,6 @@ public class TirePhysics implements Serializable {
             totalDragForce                  = airDragForce + rollingDragForce;
             totalDragTorque                 = airDragTorque + rollingDragTorque;
 
-            // nothing's moving, switch for static friction at least for one iteration
             if (Math.abs(torqueForce - brakingForce) > staticLimit)
                 useStaticFriction = false;
 
@@ -108,19 +107,26 @@ public class TirePhysics implements Serializable {
                 var acc:Number = (staticResponseForce) / (carMass + wheelMass);
 
                 //compute new velocities
-                var oldPosVel:Number = wheelPosVel;
-                wheelPosVel    += acc * dt;
-                wheelAngVel     = -wheelPosVel / wheelRadius;
+                var oldPosVel:Number    = wheelPosVel;
+                wheelPosVel            += acc * dt;
+
+                var sAngAcc:Number      = -acc / wheelRadius;
+                wheelAngVel            += sAngAcc * dt;
 
                 // drag was high enough to stop the body
-                if(! sameSign(oldPosVel, wheelPosVel, false) && ! sameSign(torqueForce, wheelPosVel, false))
+                if(! sameSign(oldPosVel, wheelPosVel, false) && ! sameSign(torqueForce, wheelPosVel, false)) {
                     wheelPosVel = wheelAngVel = 0;
+                    acc         = -oldPosVel / dt;
+                    sAngAcc     = acc / wheelRadius;
+                }
 
                 wasStaticFriction   = true;
                 forceRatio          = 1;
-                responseTorque      = torqueForce * wheelRadius;
                 acceleration        = acc;
-                angAcceleration     = -acc / wheelRadius;
+                angAcceleration     = sAngAcc;
+                // this is how much torque goes back from the wheel, so if a wheel does not accelerate,
+                // it's the opposite of torque applied
+                responseTorque      = sAngAcc * wheelInertia - appliedTorque;
             }
             else {
                 // kinetic friction, wheel is sliding
@@ -130,7 +136,7 @@ public class TirePhysics implements Serializable {
                 if(Math.abs(wheelSurfaceVel) < 0.0001)
                     wheelSurfaceVel = 0.0;
 
-                var kineticResponseForce:Number = -sign(wheelSurfaceVel) * normalForce * coefKF * getLongForceRatio(slipRatio);
+                var kineticResponseForce:Number = -sign(wheelSurfaceVel) * normalForce * coefKF; // * getLongForceRatio(slipRatio);
 
                 // feed friction force back into torque
                 var kineticResponseTorque:Number= kineticResponseForce * wheelRadius;
