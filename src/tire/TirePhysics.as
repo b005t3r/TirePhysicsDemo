@@ -69,6 +69,18 @@ public class TirePhysics implements Serializable {
     public var longForceRatios:Vector.<Number> = new <Number>[0.625,  0.875, 0.999,  0.981,  0.875,  0.625, 0, 0.625, 0.875, 0.981, 0.999, 0.875, 0.625, 0.525];
 
     public function TirePhysics() {
+        for(var i:Number = 0; i < 1.2; i += 0.05)
+            trace(i + ":", getKineticForceRatio(i, -1));
+
+        trace();
+
+        for(var i:Number = 0; i < 1.2; i += 0.05)
+            trace(i + ":", getKineticForceRatio(i, 0));
+
+        trace();
+
+        for(var i:Number = 0; i < 1.2; i += 0.05)
+            trace(i + ":", getKineticForceRatio(i, 1));
     }
 
     public function step(dt:Number, subStepCount:int):void {
@@ -76,7 +88,7 @@ public class TirePhysics implements Serializable {
 
         for(var i:int = 0; i < subStepCount; ++i) {
             var normalForce:Number          = (carMass + wheelMass) * gravity;
-            var staticLimit:Number          = Math.abs(normalForce * coefSF);
+            var staticLimit:Number          = 0.8 * normalForce * coefSF;
 
             var appliedTorque:Number        = wheelTorque * throttle * direction;
             var torqueForce:Number          = -appliedTorque / wheelRadius;
@@ -94,92 +106,85 @@ public class TirePhysics implements Serializable {
             totalDragForce                  = airDragForce + rollingDragForce;
             totalDragTorque                 = airDragTorque + rollingDragTorque;
 
-            if (Math.abs(torqueForce - brakingForce) > staticLimit)
-                useStaticFriction = false;
+            // A tire has a staticLimit, which is how much force can it transfer without slipping - this is
+            // described by staticForce. If it slips just a little bit, it can transfer even more force, but
+            // if it stats to slip too much, it'll go below its staticLimit. This is described by kineticLimit.
+            // Any force over staticLimit but below kineticLimit accelerates the body and decelerates the wheel
+            // (it creates a kinetic force pushing body forward and a torque which tries to slow down the wheel).
+            // Anything above kineticLimit contributes only to increasing tire slip (which will in turn contribute
+            // to changing the kineticLimit in the next iteration) - this is stored as excessForce.
+            // First, we calculate the staticForce and excessForce. Then the currently available kineticLimit
+            // and using it we calculate kineticForce and eventually decrease excessForce (some of it might increase
+            // the kineticForce - all depending on the kineticLimit available).
+            var totalForce:Number   = torqueForce + brakingForce + totalDragForce;
+            var staticForce:Number  = Math.abs(totalForce) > staticLimit ? sign(totalForce) * staticLimit : totalForce;
+            var excessForce:Number  = totalForce - staticForce;
+            var kineticLimit:Number = slipRatio != 0 ? -getKineticForceRatio(slipRatio, totalForce) * normalForce * coefSF : staticForce;
+            var kineticForce:Number = 0;
 
-            //useStaticFriction = true;
-
-            if (useStaticFriction) {
-                //static friction, direct force feedback
-                var staticResponseForce:Number = torqueForce + brakingForce + totalDragForce;
-
-                //compute acceleration of system based on result force
-                var acc:Number = (staticResponseForce) / (carMass + wheelMass);
-
-                //compute new velocities
-                var oldPosVel:Number    = wheelPosVel;
-                wheelPosVel            += acc * dt;
-
-                var sAngAcc:Number      = -acc / wheelRadius;
-                wheelAngVel            += sAngAcc * dt;
-
-                // drag was high enough to stop the body
-                if(! sameSign(oldPosVel, wheelPosVel, false) && ! sameSign(torqueForce, wheelPosVel, false)) {
-                    wheelPosVel = wheelAngVel = 0;
-                    acc         = -oldPosVel / dt;
-                    sAngAcc     = acc / wheelRadius;
-                }
-
-                wasStaticFriction   = true;
-                forceRatio          = 1;
-                acceleration        = acc;
-                angAcceleration     = sAngAcc;
-                // this is how much torque goes back from the wheel, so if a wheel does not accelerate,
-                // it's the opposite of torque applied
-                responseTorque      = sAngAcc * wheelInertia - appliedTorque;
+            // both forces push opposite directions
+            if(! sameSign(staticForce, kineticLimit, false)) {
+                kineticForce = kineticLimit;
             }
+            // both push the same direction
             else {
-                // kinetic friction, wheel is sliding
-                var wheelSurfaceVel:Number = wheelPosVel + wheelAngVel * wheelRadius;
+                var diff:Number = kineticLimit - staticForce;
 
-                // sometimes float precision simply isn't enough
-                if(Math.abs(wheelSurfaceVel) < 0.0001)
-                    wheelSurfaceVel = 0.0;
+                if(diff > 0) {
+                    kineticForce    = diff;
+                    excessForce    -= diff;
 
-                var kineticResponseForce:Number = -sign(wheelSurfaceVel) * normalForce * coefKF; // * getLongForceRatio(slipRatio);
-
-                // feed friction force back into torque
-                var kineticResponseTorque:Number= kineticResponseForce * wheelRadius;
-                var angAcc:Number               = (appliedTorque + kineticResponseTorque + brakingTorque + totalDragTorque) / wheelInertia;
-                var oldAngVel:Number            = wheelAngVel;
-                wheelAngVel                    += angAcc * dt;
-
-                // feed friction force back into system
-                var posAcc:Number       = (kineticResponseForce + totalDragForce) / (carMass + wheelMass);
-                var kOldPosVel:Number   = wheelPosVel;
-                wheelPosVel            += posAcc * dt;
-
-                // drag was high enough to stop body's roll
-                if(! sameSign(oldAngVel, wheelAngVel, false) && (appliedTorque != 0 && ! sameSign(appliedTorque, wheelAngVel, false) || brakingTorque != 0 && sameSign(brakingTorque, wheelAngVel, false)))
-                    wheelAngVel = 0;
-
-                // drag was high enough to stop the body
-                if(! sameSign(kOldPosVel, wheelPosVel, false) && torqueForce != 0 && ! sameSign(torqueForce, wheelPosVel, false))
-                    wheelPosVel = 0;
-
-                wasStaticFriction   = false;
-                forceRatio          = getLongForceRatio(slipRatio);
-                responseTorque      = kineticResponseTorque;
-                acceleration        = posAcc;
-                angAcceleration     = angAcc;
+                    if(excessForce < 0)
+                        excessForce = 0;
+                }
+                else {
+                    kineticForce    = 0;
+                    staticForce    += diff;
+                    excessForce    -= diff;
+                }
             }
+
+            // compute longitudinal and angular accelerations based on staticForce (no slipping)
+            var acc:Number      = staticForce / (carMass + wheelMass);
+            var angAcc:Number   = -acc / wheelRadius;
+
+            // add kineticForce to both - acc increases, angAcc decreases
+            acc                += kineticForce / (carMass + wheelMass);
+            angAcc             += kineticForce * wheelRadius / wheelInertia;
+
+            // finally add excessForce to increase angular acceleration
+            angAcc             += -excessForce * wheelRadius / wheelInertia;
+
+            //compute new velocities
+            var oldPosVel:Number = wheelPosVel;
+            var oldAngVel:Number = wheelAngVel;
+            wheelPosVel        += acc * dt;
+            wheelAngVel        += angAcc * dt;
+
+            // drag was high enough to stop body's roll
+            if(! sameSign(oldAngVel, wheelAngVel, false) && (appliedTorque != 0 && ! sameSign(appliedTorque, wheelAngVel, false) || brakingTorque != 0 && sameSign(brakingTorque, wheelAngVel, false)))
+                wheelAngVel = 0;
+
+            // drag was high enough to stop the body
+            if(! sameSign(oldPosVel, wheelPosVel, false) && torqueForce != 0 && ! sameSign(torqueForce, wheelPosVel, false))
+                wheelPosVel = 0;
 
             // common integration
             wheelPos   += wheelPosVel * dt;
             wheelAngle += wheelAngVel * dt;
 
-            const minVel:Number = 0.15;
-            if(wasStaticFriction)
+            wasStaticFriction   = false;
+            forceRatio          = getKineticForceRatio(slipRatio, totalForce);
+            acceleration        = acc;
+            angAcceleration     = angAcc;
+            responseTorque      = -(appliedTorque - angAcc * wheelInertia);
+
+            const minVel:Number = 0.05;
+
+            if(Math.abs(wheelPosVel) < minVel)
                 slipRatio = 0;
-            else if(Math.abs(wheelPosVel) < minVel)
-                slipRatio = wheelPosVel < 0 ? direction * (wheelAngVel * wheelRadius - minVel) / minVel : direction * (wheelAngVel * wheelRadius + minVel) / minVel;
             else
                 slipRatio = direction * (wheelAngVel * wheelRadius + wheelPosVel) / Math.abs(wheelPosVel);
-
-            //slipRatio   = wheelPosVel != 0 ? (wheelAngVel * wheelRadius + wheelPosVel) / Math.abs(wheelPosVel) : 0.0;
-
-            if(Math.abs(slipRatio) < 0.01)
-                useStaticFriction = true;
         }
     }
 
@@ -297,6 +302,30 @@ public class TirePhysics implements Serializable {
         }
 
         throw new Error("slip ratio not found?");
+    }
+
+    private function getKineticForceRatio(slipRatio:Number, dir:Number):Number {
+        var sr:Number = Math.abs(slipRatio);
+
+        if(sr == 0)
+            if(! sameSign(-dir, slipRatio, true))
+                return 0.0;
+            else
+                return 0.8;
+
+        if(sr <= 0.1)
+            if(! sameSign(-dir, slipRatio, false))
+                return sign(slipRatio) * (sr / 0.1);
+            else
+                return sign(slipRatio) * (0.8 + 0.2 * (sr / 0.1));
+
+        if(sr <= 0.3)
+            return sign(slipRatio) * (1 + 0.2 * ((0.1 - sr) / (0.3 - 0.1)));
+
+        if(sr <= 1)
+            return sign(slipRatio) * (0.8 + 0.2 * ((0.3 - sr) / (1 - 0.3)));
+
+        return sign(slipRatio) * 0.6;
     }
 }
 }

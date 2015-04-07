@@ -62,17 +62,13 @@ public class RootDisplay extends LayoutGroup {
 //        _gameInput.addEventListener(GameInputEvent.DEVICE_REMOVED, onDeviceRemoved);
 //        _gameInput.addEventListener(GameInputEvent.DEVICE_UNUSABLE, onDeviceUnusable);
 
-//        _tirePhysics.throttle = 1;
-//        brakes = 1;
+//        _tirePhysics.throttle = 0.3;
 
-//        while(Math.abs(wheelTorque) - Math.abs(totalDragTorque) > 0.01) {
-//            doPhysics(0.01);
+//        while(true) {
+//            _tirePhysics.step(_stepDt, _subStepCount);
 //
-//            if(-sign(throttle) * wheelPosVel > 2)
-//                throttle *= -1;
+//            trace(_tirePhysics.toString());
 //        }
-
-        //throttle = 0;
 
         stage.addEventListener(Event.ENTER_FRAME, onFrame);
     }
