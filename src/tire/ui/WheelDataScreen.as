@@ -76,7 +76,7 @@ public class WheelDataScreen extends PanelScreen {
         _wheelInertiaSlider.minimum = 0.1;
         _wheelInertiaSlider.maximum = 50;
         _wheelInertiaSlider.step = 0.1;
-        _wheelInertiaSlider.value = 20;
+        _wheelInertiaSlider.value = tirePhysics.wheelInertia;
         _wheelInertiaSlider.isEnabled = _tirePhysics.wheelInertiaLocked;
         _wheelInertiaSlider.addEventListener(Event.CHANGE, function (e:Event):void {
             _tirePhysics.wheelInertia = _wheelInertiaSlider.value;
