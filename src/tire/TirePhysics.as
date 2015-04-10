@@ -68,19 +68,29 @@ public class TirePhysics implements Serializable {
     public var longSlipRatios:Vector.<Number>  = new <Number>[ -1.0, -0.333, -0.20, -0.133, -0.066, -0.033, 0,  0.01,  0.02,  0.04,  0.06,  0.10,  0.30,  0.50];
     public var longForceRatios:Vector.<Number> = new <Number>[0.625,  0.875, 0.999,  0.981,  0.875,  0.625, 0, 0.625, 0.875, 0.981, 0.999, 0.875, 0.625, 0.525];
 
+    public var staticForceRatio:Number              = 0.8;
+    public var kineticSlipRatios:Vector.<Number>    = new <Number>[0,  0.02,  0.04,  0.08, 0.1,  0.15,  0.40,  0.75, 1.25, 2.0];
+    public var kineticForceRatios:Vector.<Number>   = new <Number>[0, 0.625, 0.875, 0.981, 1.0, 0.875, 0.625, 0.525, 0.45, 0.4];
+    public var kineticPeakSlipRatio:Number          = 0.06;
+
     public function TirePhysics() {
-        for(var i:Number = 0; i < 1.2; i += 0.05)
-            trace(i + ":", getKineticForceRatio(i, -1));
+        var maxForce:Number     = kineticForceRatios[0];
+        kineticPeakSlipRatio    = kineticSlipRatios[0];
 
-        trace();
+        var count:int = kineticSlipRatios.length;
+        for(var i:int = 1; i < count; ++i) {
+            var slip:Number     = kineticSlipRatios[i];
+            var force:Number    = kineticForceRatios[i];
 
-        for(var i:Number = 0; i < 1.2; i += 0.05)
-            trace(i + ":", getKineticForceRatio(i, 0));
+            if(force <= maxForce)
+                continue;
 
-        trace();
+            kineticPeakSlipRatio    = slip;
+            maxForce                = force;
+        }
 
-        for(var i:Number = 0; i < 1.2; i += 0.05)
-            trace(i + ":", getKineticForceRatio(i, 1));
+//                for(var a:Number = 0; a < 1.2; a += 0.05)
+//                    trace(a + ":", getKineticForceRatio(a));
     }
 
     public function step(dt:Number, subStepCount:int):void {
@@ -88,7 +98,7 @@ public class TirePhysics implements Serializable {
 
         for(var i:int = 0; i < subStepCount; ++i) {
             var normalForce:Number          = (carMass + wheelMass) * gravity;
-            var staticLimit:Number          = 0.8 * normalForce * coefSF;
+            var tireStaticLimit:Number      = staticForceRatio * normalForce * coefSF;
 
             var appliedTorque:Number        = wheelTorque * throttle * direction;
             var torqueForce:Number          = -appliedTorque / wheelRadius;
@@ -103,57 +113,91 @@ public class TirePhysics implements Serializable {
             airDragTorque                   = -airDragForce * wheelRadius;
             rollingDragForce                = dragForceSign * coefRollingDrag * normalForce;
             rollingDragTorque               = -rollingDragForce * wheelRadius;
-            totalDragForce                  = airDragForce + rollingDragForce;
-            totalDragTorque                 = airDragTorque + rollingDragTorque;
+            totalDragForce                  = rollingDragForce;
+            totalDragTorque                 = rollingDragTorque;
 
-            // A tire has a staticLimit, which is how much force can it transfer without slipping - this is
-            // described by staticForce. If it slips just a little bit, it can transfer even more force, but
-            // if it stats to slip too much, it'll go below its staticLimit. This is described by kineticLimit.
-            // Any force over staticLimit but below kineticLimit accelerates the body and decelerates the wheel
+            // Total forces acting on the body, not created by the tire.
+            // It transfers onto a tire (and from the tire back onto the body) up to a static limit. The excess force
+            // does not make the tire spin more, but still acts on the body (changing the acceleration)
+            var bodyTotalForce:Number       = airDragForce;
+            var bodyStaticForce:Number      = Math.abs(bodyTotalForce) > tireStaticLimit ? sign(bodyTotalForce) * tireStaticLimit : bodyTotalForce;
+            var bodyExcessForce:Number      = bodyTotalForce - bodyStaticForce;
+
+            // TODO: edit this
+            // A tire has a tireStaticLimit, which is how much force can it transfer without slipping - this is
+            // described by tireStaticForce. If it slips just a little bit, it can transfer even more force, but
+            // if it stats to slip too much, it'll go below its tireStaticLimit. This is described by tireKineticLimit.
+            // Any force over tireStaticLimit but below tireKineticLimit accelerates the body and decelerates the wheel
             // (it creates a kinetic force pushing body forward and a torque which tries to slow down the wheel).
-            // Anything above kineticLimit contributes only to increasing tire slip (which will in turn contribute
-            // to changing the kineticLimit in the next iteration) - this is stored as excessForce.
-            // First, we calculate the staticForce and excessForce. Then the currently available kineticLimit
-            // and using it we calculate kineticForce and eventually decrease excessForce (some of it might increase
-            // the kineticForce - all depending on the kineticLimit available).
-            var totalForce:Number   = torqueForce + brakingForce + totalDragForce;
-            var staticForce:Number  = Math.abs(totalForce) > staticLimit ? sign(totalForce) * staticLimit : totalForce;
-            var excessForce:Number  = totalForce - staticForce;
-            var kineticLimit:Number = slipRatio != 0 ? -getKineticForceRatio(slipRatio, totalForce) * normalForce * coefSF : staticForce;
-            var kineticForce:Number = 0;
+            // Anything above tireKineticLimit contributes only to increasing tire slip (which will in turn contribute
+            // to changing the tireKineticLimit in the next iteration) - this is stored as tireExcessForce.
+            // First, we calculate the tireStaticForce and tireExcessForce. Then the currently available tireKineticLimit
+            // and using it we calculate tireKineticForce and eventually decrease tireExcessForce (some of it might increase
+            // the tireKineticForce - all depending on the tireKineticLimit available).
+            var tireTotalForce:Number   = torqueForce + brakingForce + bodyStaticForce + totalDragForce;
+            var tireStaticForce:Number  = Math.abs(tireTotalForce) > tireStaticLimit ? sign(tireTotalForce) * tireStaticLimit : tireTotalForce;
+            var tireExcessForce:Number  = tireTotalForce - tireStaticForce;
 
-            // both forces push opposite directions
-            if(! sameSign(staticForce, kineticLimit, false)) {
-                kineticForce = kineticLimit;
+            var surfaceVel:Number       = wheelPosVel + wheelAngVel * wheelRadius;
+            var tireKineticLimit:Number = -sign(surfaceVel) * getKineticForceRatio(slipRatio) * normalForce * coefSF;
+            var tireKineticForce:Number;
+
+            // static friction only
+            if(tireKineticLimit == 0) {
+                tireKineticForce = 0;
             }
-            // both push the same direction
+            // kinetic friction, kinetic force pushes the opposite direction (or static force is 0)
+            else if(! sameSign(tireStaticForce, tireKineticLimit, false)) {
+                tireKineticForce = tireKineticLimit;
+            }
+            // kinetic friction, both forces push the same direction
             else {
-                var diff:Number = kineticLimit - staticForce;
+                // slip ratio at or about to reach its optimum
+                if(Math.abs(slipRatio) <= kineticPeakSlipRatio) {
+                    var maxKineticLimit:Number  = getKineticForceRatio(sign(slipRatio) * kineticPeakSlipRatio) * normalForce * coefSF;
+                    var boostRatio:Number       = tireKineticLimit / maxKineticLimit;
+                    var kineticBoostLeft:Number = maxKineticLimit - tireStaticForce;
 
-                if(diff > 0) {
-                    kineticForce    = diff;
-                    excessForce    -= diff;
+                    tireKineticForce                = kineticBoostLeft * boostRatio;
+                    tireExcessForce                -= tireKineticForce;
 
-                    if(excessForce < 0)
-                        excessForce = 0;
+                    // was all excess force used up
+                    if(sign(maxKineticLimit) * tireExcessForce < 0)
+                        tireExcessForce = 0;
                 }
+                // sub-optimal slip, past the optimum
                 else {
-                    kineticForce    = 0;
-                    staticForce    += diff;
-                    excessForce    -= diff;
+                    tireKineticForce = tireKineticLimit - tireStaticForce;
+
+                    // static force higher than kinetic limit
+                    if(sign(tireKineticLimit) * tireKineticForce < 0) {
+                        tireStaticForce    -= sign(tireKineticLimit) * tireKineticForce;
+                        tireExcessForce    += sign(tireKineticLimit) * tireKineticForce;
+                        tireKineticForce    = 0;
+                    }
+                    else {
+                        tireExcessForce    -= sign(tireKineticLimit) * tireKineticForce;
+
+                        // was all excess force used up
+                        if(sign(tireKineticLimit) * tireExcessForce < 0)
+                            tireExcessForce = 0;
+                    }
                 }
             }
 
-            // compute longitudinal and angular accelerations based on staticForce (no slipping)
-            var acc:Number      = staticForce / (carMass + wheelMass);
+            // compute longitudinal and angular accelerations based on tireStaticForce (no slipping)
+            var acc:Number      = tireStaticForce / (carMass + wheelMass);
             var angAcc:Number   = -acc / wheelRadius;
 
-            // add kineticForce to both - acc increases, angAcc decreases
-            acc                += kineticForce / (carMass + wheelMass);
-            angAcc             += kineticForce * wheelRadius / wheelInertia;
+            // add bodyExcessForce (like huge air resistance, e.g. wind)
+            acc                += bodyExcessForce / (carMass + wheelMass);
 
-            // finally add excessForce to increase angular acceleration
-            angAcc             += -excessForce * wheelRadius / wheelInertia;
+            // add tireKineticForce to both - acc increases, angAcc decreases
+            acc                += tireKineticForce / (carMass + wheelMass);
+            angAcc             += tireKineticForce * wheelRadius / wheelInertia;
+
+            // finally add tireExcessForce to increase angular acceleration
+            angAcc             += -tireExcessForce * wheelRadius / wheelInertia;
 
             //compute new velocities
             var oldPosVel:Number = wheelPosVel;
@@ -173,13 +217,13 @@ public class TirePhysics implements Serializable {
             wheelPos   += wheelPosVel * dt;
             wheelAngle += wheelAngVel * dt;
 
-            wasStaticFriction   = false;
-            forceRatio          = getKineticForceRatio(slipRatio, totalForce);
+            wasStaticFriction   = tireKineticForce != 0;
+            forceRatio          = getKineticForceRatio(slipRatio);
             acceleration        = acc;
             angAcceleration     = angAcc;
             responseTorque      = -(appliedTorque - angAcc * wheelInertia);
 
-            const minVel:Number = 0.05;
+            const minVel:Number = 0.15;
 
             if(Math.abs(wheelPosVel) < minVel)
                 slipRatio = 0;
@@ -304,28 +348,33 @@ public class TirePhysics implements Serializable {
         throw new Error("slip ratio not found?");
     }
 
-    private function getKineticForceRatio(slipRatio:Number, dir:Number):Number {
+    private function getKineticForceRatio(slipRatio:Number):Number {
+        if(slipRatio == 0)
+            return 0;
+
         var sr:Number = Math.abs(slipRatio);
 
-        if(sr == 0)
-            if(! sameSign(-dir, slipRatio, true))
-                return 0.0;
-            else
-                return 0.8;
+        if(sr > kineticSlipRatios[kineticSlipRatios.length - 1])
+            return kineticForceRatios[kineticForceRatios.length - 1];
 
-        if(sr <= 0.1)
-            if(! sameSign(-dir, slipRatio, false))
-                return sign(slipRatio) * (sr / 0.1);
-            else
-                return sign(slipRatio) * (0.8 + 0.2 * (sr / 0.1));
+        var count:int = kineticSlipRatios.length;
+        for(var i:int = 0; i < count; ++i) {
+            var maxSlipRatio:Number = kineticSlipRatios[i];
 
-        if(sr <= 0.3)
-            return sign(slipRatio) * (1 + 0.2 * ((0.1 - sr) / (0.3 - 0.1)));
+            if(maxSlipRatio == sr)       return kineticForceRatios[i];
+            else if (maxSlipRatio < sr)  continue;
 
-        if(sr <= 1)
-            return sign(slipRatio) * (0.8 + 0.2 * ((0.3 - sr) / (1 - 0.3)));
+            var minSlipRatio:Number     = kineticSlipRatios[i - 1];
+            var ratio:Number            = (sr - minSlipRatio) / (maxSlipRatio - minSlipRatio);
 
-        return sign(slipRatio) * 0.6;
+            var maxForceRatio:Number    = kineticForceRatios[i];
+            var minForceRatio:Number    = kineticForceRatios[i - 1];
+            var forceRatio:Number       = minForceRatio + (maxForceRatio - minForceRatio) * ratio;
+
+            return forceRatio;
+        }
+
+        throw new Error("slip ratio not found?");
     }
 }
 }
