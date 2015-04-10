@@ -9,13 +9,15 @@ import plugs.inputs.NumberInput;
 import plugs.outputs.NumberOutput;
 import plugs.processors.AbstractProcessor;
 
-public class OpenDifferentialExcessTorqueStore extends AbstractProcessor implements IDifferentialExcessTorqueStore {
+public class ExcessTorqueStore extends AbstractProcessor implements IExcessTorqueStore {
     private var _torqueInput:NumberInput;
     private var _torqueOutput:NumberOutput;
 
+    private var _timeStepInput:NumberInput;
+
     private var _torque:Number = 0;
 
-    public function OpenDifferentialExcessTorqueStore(name:String = null) {
+    public function ExcessTorqueStore(name:String = null) {
         super(name);
 
         _torqueInput    = new NumberInput("ExcessTorque");
@@ -23,16 +25,25 @@ public class OpenDifferentialExcessTorqueStore extends AbstractProcessor impleme
 
         addInput(_torqueInput);
         addOutput(_torqueOutput);
+
+        _timeStepInput  = new NumberInput("dt");
+
+        addInput(_timeStepInput);
     }
 
     public function get torqueInput():NumberInput { return _torqueInput; }
     public function get torqueOutput():NumberOutput { return _torqueOutput; }
 
+    public function get timeStepInput():NumberInput { return _timeStepInput; }
+
     public function get torque():Number { return _torque; }
     public function set torque(value:Number):void { _torque = value; }
 
-    public function pullTorque():void {
-        _torque = _torqueInput.connections.get(0).pullData();
+    override public function receivePushData(data:*, inputConnection:Connection):void {
+        if(inputConnection.input == _timeStepInput)
+            pullTorque();
+        else
+            super.receivePushData(data, inputConnection);
     }
 
     override public function requestPullData(outputConnection:Connection):* {
@@ -40,6 +51,10 @@ public class OpenDifferentialExcessTorqueStore extends AbstractProcessor impleme
             return _torque;
 
         throw new ArgumentError("invalid connection");
+    }
+
+    private function pullTorque():void {
+        _torque = _torqueInput.connections.get(0).pullData();
     }
 }
 }

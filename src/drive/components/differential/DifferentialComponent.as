@@ -32,7 +32,7 @@ public class DifferentialComponent extends DrivetrainComponent {
 
     public function get shareRatio():Number { return _shareRatio; }
 
-    public function connectExcessTorqueStore(store:IDifferentialExcessTorqueStore):void {
+    public function connectExcessTorqueStore(store:IExcessTorqueStore):void {
         if(_excessTorqueInput.connections.size() > 0 || _excessTorqueOutput.connections.size() > 0)
             throw new Error("only one excess torque store is allowed");
 
