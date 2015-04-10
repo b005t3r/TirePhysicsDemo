@@ -21,7 +21,6 @@ import tire.TirePhysics;
 
 public class WorldDataScreen extends PanelScreen {
     private var _staticFrictionCoefSlider:Slider;
-    private var _kineticFrictionCoefSlider:Slider;
     private var _airDragCoefSlider:Slider;
     private var _rollingDragCoefSlider:Slider;
     private var _subStepCountSlider:Slider;
@@ -53,16 +52,6 @@ public class WorldDataScreen extends PanelScreen {
             _tirePhysics.coefSF = _staticFrictionCoefSlider.value;
         });
         UiHelper.setupSlider(_staticFrictionCoefSlider);
-        
-        _kineticFrictionCoefSlider = new Slider();
-        _kineticFrictionCoefSlider.minimum = 0.0;
-        _kineticFrictionCoefSlider.maximum = 1.0;
-        _kineticFrictionCoefSlider.step = 0.1;
-        _kineticFrictionCoefSlider.value = _tirePhysics.coefKF;
-        _kineticFrictionCoefSlider.addEventListener(Event.CHANGE, function (e:Event):void {
-            _tirePhysics.coefKF = _kineticFrictionCoefSlider.value;
-        });
-        UiHelper.setupSlider(_kineticFrictionCoefSlider);
         
         _airDragCoefSlider = new Slider();
         _airDragCoefSlider.minimum = 0;
@@ -99,7 +88,6 @@ public class WorldDataScreen extends PanelScreen {
         list.isSelectable = false;
         list.dataProvider = new ListCollection([
             { label : "Static frict. coef.", accessory : _staticFrictionCoefSlider },
-            { label : "Kinetic frict. coef.", accessory : _kineticFrictionCoefSlider},
             { label : "Air drag coef.", accessory : _airDragCoefSlider},
             { label : "Rolling drag coef.", accessory : _rollingDragCoefSlider},
             { label : "Simulation sub-steps", accessory : _subStepCountSlider},

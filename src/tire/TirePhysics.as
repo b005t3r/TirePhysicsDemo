@@ -30,12 +30,10 @@ public class TirePhysics implements Serializable {
     public var wheelTorque:Number           = 1400;
     public var brakeTorque:Number           = 3200;
     public var carMass:Number               = 400;
-    //public var wheelInertia:Number          = 0.5 * wheelMass * wheelRadius * wheelRadius;
     public var wheelInertiaLocked:Boolean   = true;
     public var wheelInertia:Number          = 20;
 
     public var coefSF:Number                = 0.9;
-    public var coefKF:Number                = 1;
     public var airDensity:Number            = 1.29;
     public var frontalArea:Number           = 2.2; // = 1;
     public var coefDrag:Number              = 0.3; // = 0.525; // for the vehicle's shape
@@ -50,11 +48,9 @@ public class TirePhysics implements Serializable {
     public var throttle:Number              = 0;
     public var brakes:Number                = 0;
     public var direction:Number             = 1;    // 1 for forward, -1 for reverse
-    public var useStaticFriction:Boolean    = true;
-    public var wasStaticFriction:Boolean    = true;
     public var slipRatio:Number             = 0;
-    public var forceRatio:Number            = 0;
-    public var responseTorque:Number        = 0;
+    public var kineticBoostRatio:Number     = 0;
+    public var reactionTorque:Number        = 0;
     public var angAcceleration:Number       = 0;
     public var acceleration:Number          = 0;
 
@@ -62,11 +58,6 @@ public class TirePhysics implements Serializable {
     public var airDragTorque:Number         = 0;
     public var rollingDragForce:Number      = 0;
     public var rollingDragTorque:Number     = 0;
-    public var totalDragForce:Number        = 0;
-    public var totalDragTorque:Number       = 0;
-
-    public var longSlipRatios:Vector.<Number>  = new <Number>[ -1.0, -0.333, -0.20, -0.133, -0.066, -0.033, 0,  0.01,  0.02,  0.04,  0.06,  0.10,  0.30,  0.50];
-    public var longForceRatios:Vector.<Number> = new <Number>[0.625,  0.875, 0.999,  0.981,  0.875,  0.625, 0, 0.625, 0.875, 0.981, 0.999, 0.875, 0.625, 0.525];
 
     public var staticForceRatio:Number              = 0.8;
     public var kineticSlipRatios:Vector.<Number>    = new <Number>[0,  0.02,  0.04,  0.08, 0.1,  0.15,  0.40,  0.75, 1.25, 2.0];
@@ -113,8 +104,6 @@ public class TirePhysics implements Serializable {
             airDragTorque                   = -airDragForce * wheelRadius;
             rollingDragForce                = dragForceSign * coefRollingDrag * normalForce;
             rollingDragTorque               = -rollingDragForce * wheelRadius;
-            totalDragForce                  = rollingDragForce;
-            totalDragTorque                 = rollingDragTorque;
 
             // Total forces acting on the body, not created by the tire.
             // It transfers onto a tire (and from the tire back onto the body) up to a static limit. The excess force
@@ -134,12 +123,13 @@ public class TirePhysics implements Serializable {
             // First, we calculate the tireStaticForce and tireExcessForce. Then the currently available tireKineticLimit
             // and using it we calculate tireKineticForce and eventually decrease tireExcessForce (some of it might increase
             // the tireKineticForce - all depending on the tireKineticLimit available).
-            var tireTotalForce:Number   = torqueForce + brakingForce + bodyStaticForce + totalDragForce;
+            var tireTotalForce:Number   = torqueForce + brakingForce + bodyStaticForce + rollingDragTorque;
             var tireStaticForce:Number  = Math.abs(tireTotalForce) > tireStaticLimit ? sign(tireTotalForce) * tireStaticLimit : tireTotalForce;
             var tireExcessForce:Number  = tireTotalForce - tireStaticForce;
 
             var surfaceVel:Number       = wheelPosVel + wheelAngVel * wheelRadius;
-            var tireKineticLimit:Number = -sign(surfaceVel) * getKineticForceRatio(slipRatio) * normalForce * coefSF;
+            kineticBoostRatio           = -sign(surfaceVel) * getKineticForceRatio(slipRatio);
+            var tireKineticLimit:Number = kineticBoostRatio * normalForce * coefSF;
             var tireKineticForce:Number;
 
             // static friction only
@@ -155,14 +145,14 @@ public class TirePhysics implements Serializable {
                 // slip ratio at or about to reach its optimum
                 if(Math.abs(slipRatio) <= kineticPeakSlipRatio) {
                     var maxKineticLimit:Number  = getKineticForceRatio(sign(slipRatio) * kineticPeakSlipRatio) * normalForce * coefSF;
-                    var boostRatio:Number       = tireKineticLimit / maxKineticLimit;
+                    //var boostRatio:Number       = tireKineticLimit / maxKineticLimit;
                     var kineticBoostLeft:Number = maxKineticLimit - tireStaticForce;
 
-                    tireKineticForce                = kineticBoostLeft * boostRatio;
+                    tireKineticForce                = kineticBoostLeft * kineticBoostRatio;
                     tireExcessForce                -= tireKineticForce;
 
                     // was all excess force used up
-                    if(sign(maxKineticLimit) * tireExcessForce < 0)
+                    if(sign(tireKineticLimit) * tireExcessForce < 0)
                         tireExcessForce = 0;
                 }
                 // sub-optimal slip, past the optimum
@@ -217,18 +207,21 @@ public class TirePhysics implements Serializable {
             wheelPos   += wheelPosVel * dt;
             wheelAngle += wheelAngVel * dt;
 
-            wasStaticFriction   = tireKineticForce != 0;
-            forceRatio          = getKineticForceRatio(slipRatio);
-            acceleration        = acc;
-            angAcceleration     = angAcc;
-            responseTorque      = -(appliedTorque - angAcc * wheelInertia);
-
             const minVel:Number = 0.15;
-
             if(Math.abs(wheelPosVel) < minVel)
                 slipRatio = 0;
             else
-                slipRatio = direction * (wheelAngVel * wheelRadius + wheelPosVel) / Math.abs(wheelPosVel);
+                slipRatio = (wheelAngVel * wheelRadius + wheelPosVel) / Math.abs(wheelPosVel);
+
+//            var slipRatioPrecision:int = int(50 * Math.abs(wheelAngVel) + Math.abs(wheelPosVel / wheelRadius));
+//            slipRatio = slipRatioPrecision != 0 ? int(slipRatio * slipRatioPrecision) / Number(slipRatioPrecision) : 0;
+
+            slipRatio = Math.round(slipRatio * 1000) / 1000;
+
+            // just statistics
+            acceleration        = acc;
+            angAcceleration     = angAcc;
+            reactionTorque      = -(appliedTorque - angAcc * wheelInertia);
         }
     }
 
@@ -255,9 +248,8 @@ public class TirePhysics implements Serializable {
             "t: " + int(wheelTorque * throttle * direction * 100) / 100 + "[Nm]" + " | " +
             "tb: " + int(brakeTorque * brakes * 100) / 100 + "[Nm]" + " | " +
             "ta: " + int(airDragTorque * 100) / 100 + "[Nm]" +" | " +
-            "tr: " + int(rollingDragTorque * 100) / 100 + "[Nm]" + " | " +
-            "td: " + int(totalDragTorque * 100) / 100 + "[Nm]" + " | " +
-            "f: " + (wasStaticFriction ? "static" : "kinetic") + " | "
+            "td: " + int(rollingDragTorque * 100) / 100 + "[Nm]" + " | " +
+            "tr: " + int(reactionTorque * 100) / 100 + "[Nm]" + " | "
         ;
 
         return s;
@@ -273,7 +265,6 @@ public class TirePhysics implements Serializable {
         wheelInertia        = input.readNumber("wheelInertia");
 
         coefSF              = input.readNumber("coefSF");
-        coefKF              = input.readNumber("coefKf");
         frontalArea         = input.readNumber("frontalArea");
         coefDrag            = input.readNumber("coefDrag");
         coefRollingDrag     = input.readNumber("coefRollingDrag");
@@ -291,7 +282,6 @@ public class TirePhysics implements Serializable {
         output.writeBoolean(wheelInertiaLocked, "wheelInertiaLocked");
         output.writeNumber(wheelInertia, "wheelInertia");
         output.writeNumber(coefSF, "coefSF");
-        output.writeNumber(coefKF, "coefKf");
         output.writeNumber(frontalArea, "frontalArea");
         output.writeNumber(coefDrag, "coefDrag");
         output.writeNumber(coefRollingDrag, "coefRollingDrag");
@@ -324,29 +314,6 @@ public class TirePhysics implements Serializable {
 
     CONFIG::web
     public function save():void { }
-
-    private function getLongForceRatio(slipRatio:Number):Number {
-        if(slipRatio <  longSlipRatios[0])                          return longForceRatios[0];
-        if(slipRatio >  longSlipRatios[longSlipRatios.length - 1])  return longForceRatios[longForceRatios.length - 1];
-
-        var count:int = longSlipRatios.length;
-        for(var i:int = 0; i < count; ++i) {
-            var maxSlipRatio:Number = longSlipRatios[i];
-
-            if(maxSlipRatio == slipRatio)       return longForceRatios[i];
-            else if (maxSlipRatio < slipRatio)  continue;
-
-            var minSlipRatio:Number     = longSlipRatios[i - 1];
-            var ratio:Number            = (slipRatio - minSlipRatio) / (maxSlipRatio - minSlipRatio);
-
-            var maxForceRatio:Number    = longForceRatios[i];
-            var minForceRatio:Number    = longForceRatios[i - 1];
-
-            return minForceRatio + (maxForceRatio - minForceRatio) * ratio;
-        }
-
-        throw new Error("slip ratio not found?");
-    }
 
     private function getKineticForceRatio(slipRatio:Number):Number {
         if(slipRatio == 0)
