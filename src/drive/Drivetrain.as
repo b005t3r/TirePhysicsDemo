@@ -7,8 +7,8 @@ package drive {
 import drive.components.DrivetrainComponent;
 import drive.components.clutch.ClutchComponent;
 import drive.components.differential.DifferentialComponent;
-import drive.components.differential.IDifferentialExcessTorqueStore;
-import drive.components.differential.OpenDifferentialExcessTorqueStore;
+import drive.components.differential.IExcessTorqueStore;
+import drive.components.differential.ExcessTorqueStore;
 import drive.components.engine.EngineComponent;
 import drive.components.util.SteppableValueStore;
 import drive.components.util.TimeStepper;
@@ -24,8 +24,8 @@ import plugs.providers.ValueProvider;
 
 public class Drivetrain {
     public function Drivetrain() {
-        //RWDDrivetrainTest();
-        ClutchTest();
+        RWDDrivetrainTest();
+        //ClutchTest();
     }
 
     private function ClutchTest():void {
@@ -210,7 +210,7 @@ public class Drivetrain {
         var gearboxVelForwarder:ValueForwarder = new ValueForwarder("GearboxAngularVelocityForwarder");
         var differential:DifferentialComponent = new DifferentialComponent(0.5, "Differential");
         var differentialVelForwarder:ValueForwarder = new ValueForwarder("DifferentialAngularVelocityForwarder");
-        var torqueStore:IDifferentialExcessTorqueStore = new OpenDifferentialExcessTorqueStore("OpenDiffStore");
+        var torqueStore:IExcessTorqueStore = new ExcessTorqueStore("OpenDiffStore");
         var leftWheel:DrivetrainComponent = new DrivetrainComponent("LeftWheel");
         var leftWheelVelStore:SteppableValueStore = new SteppableValueStore("LeftWheelAngularVelocityStore");
         var rightWheel:DrivetrainComponent = new DrivetrainComponent("RightWheel");
@@ -278,7 +278,7 @@ public class Drivetrain {
         leftWheelTorque.value = -300;
 
         Connection.connect(leftWheelInertia.output, leftWheel.inertiaInput);
-        //Connection.connect(leftWheelTorque.output, leftWheel.torqueInput);
+        Connection.connect(leftWheelTorque.output, leftWheel.torqueInput);
 
         Connection.connect(leftWheel.newAngularVelocityOutput, leftWheelVelStore.angularVelocityInput);
         Connection.connect(leftWheelVelStore.angularVelocityOutput, leftWheel.angularVelocityInput);
@@ -292,10 +292,10 @@ public class Drivetrain {
         var rightWheelInertia:ValueProvider = new ValueProvider(new NumberOutput("RightWheelInertia"));
         rightWheelInertia.value = 10;
         var rightWheelTorque:ValueProvider = new ValueProvider(new NumberOutput("RightWheelTorque"));
-        rightWheelTorque.value = -350;
+        rightWheelTorque.value = -310;
 
         Connection.connect(rightWheelInertia.output, rightWheel.inertiaInput);
-//        Connection.connect(rightWheelTorque.output, rightWheel.torqueInput);
+        Connection.connect(rightWheelTorque.output, rightWheel.torqueInput);
 
         Connection.connect(rightWheel.newAngularVelocityOutput, rightWheelVelStore.angularVelocityInput);
         Connection.connect(rightWheelVelStore.angularVelocityOutput, rightWheel.angularVelocityInput);
@@ -356,6 +356,8 @@ public class Drivetrain {
         var rightWheelAngularVelocity:DebugConsumer = new DebugConsumer(new NumberInput("RightWheelAngularVelocity"));
         Connection.connect(rightWheel.angularVelocityOutput, rightWheelAngularVelocity.input);
 
+        Connection.connect(timeStepper.timeStepOutput, torqueStore.timeStepInput);
+
         trace("Inertia:");
         engineEffectiveInertia.pullData();
         gearboxEffectiveInertia.pullData();
@@ -364,7 +366,7 @@ public class Drivetrain {
         rightWheelEffectiveInertia.pullData();
 
         var time:int = getTimer();
-        for(var i:int = 0; i < 10000; ++i)
+        for(var i:int = 0; i < 100; ++i)
             timeStepper.pushTimeStep(0.001);
 
         trace("elapsed: " + (getTimer() - time));
@@ -377,7 +379,7 @@ public class Drivetrain {
         leftWheelTotalTorque.pullData();
         rightWheelTotalTorque.pullData();
 
-        torqueStore.pullTorque();
+        //torqueStore.pullTorque();
         trace("Pulled " + torqueStore.torque + " [Nm] of excess torque");
 
         trace("Velocity[" + i + "]:");
