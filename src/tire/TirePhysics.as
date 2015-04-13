@@ -123,7 +123,7 @@ public class TirePhysics implements Serializable {
             // First, we calculate the tireStaticForce and tireExcessForce. Then the currently available tireKineticLimit
             // and using it we calculate tireKineticForce and eventually decrease tireExcessForce (some of it might increase
             // the tireKineticForce - all depending on the tireKineticLimit available).
-            var tireTotalForce:Number   = torqueForce + brakingForce + bodyStaticForce + rollingDragTorque;
+            var tireTotalForce:Number   = torqueForce + brakingForce + bodyStaticForce + rollingDragForce;
             var tireStaticForce:Number  = Math.abs(tireTotalForce) > tireStaticLimit ? sign(tireTotalForce) * tireStaticLimit : tireTotalForce;
             var tireExcessForce:Number  = tireTotalForce - tireStaticForce;
 
@@ -161,12 +161,12 @@ public class TirePhysics implements Serializable {
 
                     // static force higher than kinetic limit
                     if(sign(tireKineticLimit) * tireKineticForce < 0) {
-                        tireStaticForce    -= sign(tireKineticLimit) * tireKineticForce;
-                        tireExcessForce    += sign(tireKineticLimit) * tireKineticForce;
+                        tireStaticForce    += tireKineticForce;
+                        tireExcessForce    -= tireKineticForce;
                         tireKineticForce    = 0;
                     }
                     else {
-                        tireExcessForce    -= sign(tireKineticLimit) * tireKineticForce;
+                        tireExcessForce    -= tireKineticForce;
 
                         // was all excess force used up
                         if(sign(tireKineticLimit) * tireExcessForce < 0)
