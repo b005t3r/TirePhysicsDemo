@@ -62,12 +62,41 @@ public class RootDisplay extends LayoutGroup {
 //        _gameInput.addEventListener(GameInputEvent.DEVICE_REMOVED, onDeviceRemoved);
 //        _gameInput.addEventListener(GameInputEvent.DEVICE_UNUSABLE, onDeviceUnusable);
 
-//        _tirePhysics.throttle = 0.3;
+//        _tirePhysics.throttle = 0.1;
+//        _tirePhysics.wheelPosVel = -250 / 3.6;
+//        _tirePhysics.wheelAngVel = 250 / 3.6 / _tirePhysics.wheelRadius;
 
+//        var a:Boolean = false;
+//
 //        while(true) {
 //            _tirePhysics.step(_stepDt, _subStepCount);
 //
 //            trace(_tirePhysics.toString());
+//
+//            if(_tirePhysics.throttle == 0.1 && _tirePhysics.wheelPosVel < -4 / 3.6)
+//                _tirePhysics.throttle = 1;
+//            else if(! a && _tirePhysics.direction == 1 && _tirePhysics.throttle == 1 && _tirePhysics.wheelPosVel < -10)
+//                { _tirePhysics.direction = -1; a = true; }
+//            else if(a && _tirePhysics.direction == -1 && _tirePhysics.throttle == 1 && _tirePhysics.wheelPosVel > 25)
+//                _tirePhysics.direction = 1;
+//            else if(a && _tirePhysics.direction == 1 && _tirePhysics.throttle == 1 && _tirePhysics.wheelPosVel / _tirePhysics.wheelRadius + _tirePhysics.wheelAngVel > 0)
+//                trace("close!");
+//        }
+
+//        _tirePhysics.throttle = 0.3;
+//
+//        while(true) {
+//            _tirePhysics.step(_stepDt, _subStepCount);
+//
+//            trace(_tirePhysics.toString());
+//
+//            if(_tirePhysics.throttle == 0.3 && _tirePhysics.wheelPosVel < -4 / 3.6) {
+//                _tirePhysics.throttle = 0; _tirePhysics.brakes = 1;
+//            }
+//            else if(_tirePhysics.brakes == 1 && _tirePhysics.throttle == 0 && _tirePhysics.wheelPosVel == 0 && _tirePhysics.wheelAngVel == 0) {
+//                _tirePhysics.brakes = 0;
+//                trace("close");
+//            }
 //        }
 
         stage.addEventListener(Event.ENTER_FRAME, onFrame);
